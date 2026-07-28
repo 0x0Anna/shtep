@@ -1,5 +1,7 @@
 # shtep
 
+**S**im**H**ub **T**elemetry **E**xport **P**lugin.
+
 A SimHub plugin that records telemetry from rally and circuit sims (RBR,
 Dirt Rally, ACR, EA WRC, ACC, AC, iRacing, etc.) to a plain-text TSV + JSON
 sidecar file pair, per stage or per stint.
