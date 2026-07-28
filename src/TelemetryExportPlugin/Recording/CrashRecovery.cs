@@ -97,9 +97,10 @@ namespace TelemetryExportPlugin.Recording
                 // {sim}_{context}_{timestamp} convention has no sessionType
                 // component). Defaults to "stint" since that's the only session
                 // type real recordings currently produce - RallyBoundary has no
-                // wired stage-start/stage-end signal yet (see project memory), so
-                // no "stage" recording can exist to crash-recover in the first
-                // place. Revisit if/when RallyBoundary is ever wired up.
+                // wired stage-start/stage-end signal yet (see RallyBoundary.cs and
+                // PLUGIN_IMPLEMENTATION_PLAN.md step 3), so no "stage" recording
+                // can exist to crash-recover in the first place. Revisit if/when
+                // RallyBoundary is ever wired up.
                 SessionType = "stint",
                 Context = match.Success ? match.Groups["context"].Value : baseName,
                 StartTimeUtc = startUtc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch/PR to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Self-contained: the classes under test deliberately have no SimHub/
+  # GameReaderCommon dependency (see TelemetryExportPlugin.Tests.csproj and
+  # PLUGIN_IMPLEMENTATION_PLAN.md "Testing notes"), so this needs no SDK refs.
+  test:
+    name: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet test src/TelemetryExportPlugin.Tests/TelemetryExportPlugin.Tests.csproj
+
+  # Builds the actual plugin against the vendored SimHub SDK reference DLLs
+  # (lib/simhub-sdk/ — see that folder's README) since there's no SimHub
+  # install on the runner and no public NuGet package for the SDK.
+  build:
+    name: build plugin
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet build TelemetryExportPlugin.sln -p:SimHubInstallPath="${{ github.workspace }}\lib\simhub-sdk\"

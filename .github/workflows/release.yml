@@ -1,0 +1,67 @@
+name: Release
+
+# Builds the plugin in Release config and attaches it to a GitHub Release
+# whenever a version tag (e.g. v0.1.0) is pushed. Pre-1.0/early-stage
+# project: no installer, just a zipped DLL as a release asset.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: build release asset
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "8.0.x"
+
+      # See lib/simhub-sdk/README.md — vendored SimHub SDK reference DLLs,
+      # since the runner has no SimHub install and there's no public NuGet
+      # package for the Plugin SDK.
+      - name: Build plugin (Release)
+        run: dotnet build src/TelemetryExportPlugin/TelemetryExportPlugin.csproj -c Release -p:SimHubInstallPath="${{ github.workspace }}\lib\simhub-sdk\"
+
+      - name: Package release asset
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $staging = "shtep-$version"
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          Copy-Item "src/TelemetryExportPlugin/bin/Release/net48/TelemetryExportPlugin.dll" $staging/
+          Copy-Item "src/TelemetryExportPlugin/bin/Release/net48/TelemetryExportPlugin.pdb" $staging/
+          Copy-Item README.md $staging/
+          Copy-Item LICENSE $staging/
+          Compress-Archive -Path $staging/* -DestinationPath "$staging.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: shtep-${{ github.ref_name }}
+          path: shtep-${{ github.ref_name }}.zip
+
+  release:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

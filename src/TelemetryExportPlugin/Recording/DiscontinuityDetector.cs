@@ -41,7 +41,16 @@ namespace TelemetryExportPlugin.Recording
         /// True if the running sim's SimHub adapter exposes an explicit
         /// resetting/awaiting-assist state and it's currently active.
         /// </param>
-        public DiscontinuityKind Evaluate(double position, double timeS, bool simReportsResetOrAssist)
+        /// <param name="lapJustChanged">
+        /// True on the sample where the sim's lap counter just ticked over.
+        /// LapDistance resets to ~0 at every lap boundary (SCHEMA.md), which is
+        /// indistinguishable from a rewind by position delta alone - skip the
+        /// heuristic for this one sample rather than misdetecting every ordinary
+        /// lap completion as a backward rewind. `_lastPosition`/`_lastTimeS`
+        /// still advance below, so the very next sample compares against the new
+        /// lap's position and isn't affected.
+        /// </param>
+        public DiscontinuityKind Evaluate(double position, double timeS, bool simReportsResetOrAssist, bool lapJustChanged = false)
         {
             DiscontinuityKind result = DiscontinuityKind.None;
 
@@ -55,7 +64,7 @@ namespace TelemetryExportPlugin.Recording
                 result = DiscontinuityKind.Forward;
             }
 
-            if (useHeuristic && _lastPosition.HasValue && _lastTimeS.HasValue)
+            if (useHeuristic && !lapJustChanged && _lastPosition.HasValue && _lastTimeS.HasValue)
             {
                 double dt = timeS - _lastTimeS.Value;
                 if (dt > 0)

@@ -27,6 +27,11 @@ namespace TelemetryExportPlugin
 
         private static readonly Regex NonSafeChars = new Regex("[^A-Za-z0-9_-]");
 
+        // Reuses ChannelMap's own (try/catch-guarded) LapNumber accessor rather
+        // than duplicating the "not every sim exposes this" handling here.
+        private static readonly Func<StatusDataBase, double?> GetLapNumber =
+            ChannelMap.Definitions.First(def => def.Header == "LapNumber").GetValue;
+
         public PluginSettings Settings;
 
         public PluginManager PluginManager { get; set; }
@@ -45,6 +50,7 @@ namespace TelemetryExportPlugin
 
         private string _currentSim;
         private int _plausibleStreak;
+        private double? _lastLapNumber;
         private DateTime _lastDiagLogUtc;
         private double? _openDiscontinuityStartTimeS;
         private List<DiscontinuityEntry> _discontinuities;
@@ -125,30 +131,19 @@ namespace TelemetryExportPlugin
                 }
             }
 
-            // Throttled raw-channel dump for post-session analysis (SimHub's log,
-            // not the recorded TSV) - lets us verify ChannelMap accessors against
-            // real telemetry without attaching a debugger to the game process.
-            if ((DateTime.UtcNow - _lastDiagLogUtc).TotalSeconds >= 5)
-            {
-                _lastDiagLogUtc = DateTime.UtcNow;
-                var fields = string.Join(", ", ChannelMap.Definitions.Select(def => $"{def.Header}={FormatDiag(def.GetValue(d))}"));
-                SimHub.Logging.Current.Info(
-                    $"TelemetryExportPlugin: diag sim={_currentSim} track={d.TrackName} car={d.CarModel} " +
-                    $"gearRaw={d.Gear} isInPitLane={d.IsInPitLane} paused={data.GamePaused} " +
-                    $"sessionType={d.SessionTypeName} isSessionRestart={d.IsSessionRestart} " +
-                    $"completedLaps={d.CompletedLaps} totalLaps={d.TotalLaps} remainingLaps={d.RemainingLaps} " +
-                    $"isGameReplay={d.IsGameReplay} replayMode={d.ReplayMode} isLapValid={d.IsLapValid} " +
-                    $"flagCheckered={d.Flag_Checkered} flagGreen={d.Flag_Green} sessionTimeLeft={d.SessionTimeLeft} " +
-                    $"{fields}");
-            }
+            LogDiagnosticsIfEnabled(data, d);
 
             // LapDistance_m doubles as the position signal for discontinuity/rewind
             // detection - PosX/Y/Z aren't available generically (see ChannelMap.cs).
             double position = d.TrackPositionMeters;
 
+            double? lapNumber = GetLapNumber(d);
+            bool lapJustChanged = lapNumber.HasValue && _lastLapNumber.HasValue && lapNumber.Value != _lastLapNumber.Value;
+            _lastLapNumber = lapNumber;
+
             if (_session != null && _session.IsOpen)
             {
-                EvaluateDiscontinuityAndRewind(position);
+                EvaluateDiscontinuityAndRewind(position, lapJustChanged);
             }
 
             if (RallySimIds.Contains(_currentSim ?? string.Empty))
@@ -165,14 +160,14 @@ namespace TelemetryExportPlugin
             }
         }
 
-        private void EvaluateDiscontinuityAndRewind(double position)
+        private void EvaluateDiscontinuityAndRewind(double position, bool lapJustChanged)
         {
             // Time_s isn't tracked on RecordingSession itself; the rewind index's
             // row count is already kept in lockstep with rows written, so reuse it
             // rather than duplicating a counter here.
             double timeS = _rewindIndex.Count / (double)Settings.SampleRateHz;
 
-            var kind = _discontinuityDetector.Evaluate(position, timeS, simReportsResetOrAssist: false);
+            var kind = _discontinuityDetector.Evaluate(position, timeS, simReportsResetOrAssist: false, lapJustChanged: lapJustChanged);
 
             switch (kind)
             {
@@ -284,6 +279,7 @@ namespace TelemetryExportPlugin
             _rewindIndex.Clear();
             _discontinuityDetector.Reset();
             _plausibleStreak = 0;
+            _lastLapNumber = null;
             _openDiscontinuityStartTimeS = null;
             _discontinuities = new List<DiscontinuityEntry>();
             _rewinds = new List<RewindEntry>();
@@ -340,6 +336,28 @@ namespace TelemetryExportPlugin
 
             _session.Close(sidecar);
             _session = null;
+        }
+
+        // Throttled raw-channel dump to SimHub's log (not the recorded TSV) - lets
+        // us verify ChannelMap accessors against a new sim's real telemetry
+        // without attaching a debugger. Gated behind VerboseDiagnosticLogging
+        // (off by default) so a published build doesn't spam every user's log;
+        // flip it on in settings when bringing up a new sim adapter.
+        private void LogDiagnosticsIfEnabled(GameData data, StatusDataBase d)
+        {
+            if (!Settings.VerboseDiagnosticLogging) return;
+            if ((DateTime.UtcNow - _lastDiagLogUtc).TotalSeconds < 5) return;
+
+            _lastDiagLogUtc = DateTime.UtcNow;
+            var fields = string.Join(", ", ChannelMap.Definitions.Select(def => $"{def.Header}={FormatDiag(def.GetValue(d))}"));
+            SimHub.Logging.Current.Info(
+                $"TelemetryExportPlugin: diag sim={_currentSim} track={d.TrackName} car={d.CarModel} " +
+                $"gearRaw={d.Gear} isInPitLane={d.IsInPitLane} paused={data.GamePaused} " +
+                $"sessionType={d.SessionTypeName} isSessionRestart={d.IsSessionRestart} " +
+                $"completedLaps={d.CompletedLaps} totalLaps={d.TotalLaps} remainingLaps={d.RemainingLaps} " +
+                $"isGameReplay={d.IsGameReplay} replayMode={d.ReplayMode} isLapValid={d.IsLapValid} " +
+                $"flagCheckered={d.Flag_Checkered} flagGreen={d.Flag_Green} sessionTimeLeft={d.SessionTimeLeft} " +
+                $"{fields}");
         }
 
         private static string FormatDiag(double? value)

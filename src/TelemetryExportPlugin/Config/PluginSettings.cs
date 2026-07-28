@@ -38,6 +38,14 @@ namespace TelemetryExportPlugin.Config
         public RewindHandlingMode RewindHandling { get; set; } = RewindHandlingMode.Truncate;
 
         /// <summary>
+        /// Throttled raw-channel dump to SimHub's log (not the recorded TSV) for
+        /// verifying ChannelMap accessors against a new sim's real telemetry
+        /// without attaching a debugger. Off by default - only turn on while
+        /// bringing up a new sim adapter (PLUGIN_IMPLEMENTATION_PLAN.md step 9).
+        /// </summary>
+        public bool VerboseDiagnosticLogging { get; set; } = false;
+
+        /// <summary>
         /// Fixed list for v1, per PLUGIN_IMPLEMENTATION_PLAN.md - becomes a proper
         /// checklist UI later once channel availability per-sim is known.
         /// "Paused"/"Discontinuity" are not listed here - they're written to every
