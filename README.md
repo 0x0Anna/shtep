@@ -7,7 +7,7 @@ sidecar file pair, per stage or per stint.
 It owns recording only — no MoTeC/.ld knowledge lives here. The output
 format is a tool-agnostic intermediate designed to be consumed by an
 external converter (see the companion
-[shakedown-engineer](https://github.com/CodifySystems/shakedown-engineer)
+[shakedown-engineer](https://github.com/0x0Anna/shakedown-engineer)
 repo), or opened directly with any TSV-capable tool (Excel, pandas, awk).
 
 ## Layout
@@ -40,6 +40,17 @@ dotnet build -t:Deploy
 
 See `SCHEMA.md` for the on-disk file format and `PLUGIN_IMPLEMENTATION_PLAN.md`
 for the design rationale.
+
+## Third-party dependencies
+
+Built against the [SimHub](https://www.simhubdash.com/) Plugin SDK
+(`GameReaderCommon`, `InputManagerCS`, `log4net`, `MahApps.Metro`,
+`Newtonsoft.Json`, `SimHub.Logging`, `SimHub.Plugins`), referenced from a
+local SimHub install and not redistributed by this repo.
+
+The test project additionally pulls [xUnit.net](https://xunit.net/) and
+[Newtonsoft.Json](https://www.newtonsoft.com/json) from NuGet as dev-time
+dependencies.
 
 ## License
 
