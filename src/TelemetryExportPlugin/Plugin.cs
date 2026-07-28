@@ -13,7 +13,7 @@ using TelemetryExportPlugin.Recording;
 namespace TelemetryExportPlugin
 {
     [PluginDescription("Records telemetry to TSV + JSON sidecar pairs for shakedown-engineer")]
-    [PluginAuthor("Annalise")]
+    [PluginAuthor("Codify Systems")]
     [PluginName("Telemetry Export")]
     public class Plugin : IPlugin, IDataPlugin, IWPFSettingsV2
     {
