@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <!-- Override via env var or -p:SimHubInstallPath=... if SimHub isn't installed
+         at the default location. Trailing backslash required (matches SimHub's
+         own PluginSdk convention). -->
+    <SimHubInstallPath Condition="'$(SimHubInstallPath)' == '' AND '$(SIMHUB_INSTALL_PATH)' != ''">$(SIMHUB_INSTALL_PATH)</SimHubInstallPath>
+    <SimHubInstallPath Condition="'$(SimHubInstallPath)' == ''">C:\Program Files (x86)\SimHub\</SimHubInstallPath>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>TelemetryExportPlugin</RootNamespace>
+    <AssemblyName>TelemetryExportPlugin</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultItems>false</EnableDefaultItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="GameReaderCommon">
+      <HintPath>$(SimHubInstallPath)GameReaderCommon.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="InputManagerCS, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SimHubInstallPath)InputManagerCS.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SimHubInstallPath)log4net.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SimHubInstallPath)MahApps.Metro.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(SimHubInstallPath)Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SimHub.Logging, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(SimHubInstallPath)SimHub.Logging.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SimHub.Plugins">
+      <HintPath>$(SimHubInstallPath)SimHub.Plugins.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Plugin.cs" />
+    <Compile Include="Control.xaml.cs">
+      <DependentUpon>Control.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Config\PluginSettings.cs" />
+    <Compile Include="Config\PathValidation.cs" />
+    <Compile Include="Recording\RecordingSession.cs" />
+    <Compile Include="Recording\RecordingSidecar.cs" />
+    <Compile Include="Recording\SampleTimer.cs" />
+    <Compile Include="Recording\ChannelMap.cs" />
+    <Compile Include="Recording\NumberFormat.cs" />
+    <Compile Include="Recording\CrashRecovery.cs" />
+    <Compile Include="Recording\DiscontinuityDetector.cs" />
+    <Compile Include="Recording\RewindIndex.cs" />
+    <Compile Include="Boundaries\RallyBoundary.cs" />
+    <Compile Include="Boundaries\CircuitBoundary.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="Control.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <!-- Opt-in: `dotnet build -t:Deploy` copies the built plugin into the live SimHub
+       install so SimHub picks it up on next launch. Not run as part of a normal Build
+       (SimHub locks the DLL while running, so this only succeeds when SimHub is
+       closed). -->
+  <Target Name="Deploy" DependsOnTargets="Build">
+    <ItemGroup>
+      <DeployFiles Include="$(OutDir)TelemetryExportPlugin.dll;$(OutDir)TelemetryExportPlugin.pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(SimHubInstallPath)" />
+    <Message Importance="high" Text="Deployed TelemetryExportPlugin to $(SimHubInstallPath)" />
+  </Target>
+
+</Project>

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "sim": "FH6",
+  "sessionType": "stint",
+  "context": "Freeroam",
+  "car": "Car_2038",
+  "driver": "Annalise",
+  "startTimeUtc": "2026-07-27T12:10:00Z",
+  "endTimeUtc": "2026-07-27T12:10:07Z",
+  "sampleRateHz": 100,
+  "channels": ["Paused", "Discontinuity", "Speed_kmh", "RPM", "Gear", "Throttle_pct", "Brake_pct", "Clutch_pct", "LapDistance_m", "FuelLevel_pct"],
+  "pluginVersion": "0.1.0"
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sim": "FH6",
+  "sessionType": "stint",
+  "context": "Freeroam",
+  "car": "Car_2038",
+  "driver": "Annalise",
+  "startTimeUtc": "2026-07-27T12:30:00Z",
+  "endTimeUtc": "2026-07-27T12:30:06Z",
+  "sampleRateHz": 100,
+  "channels": ["Paused", "Discontinuity", "Speed_kmh", "RPM", "Gear", "Throttle_pct", "Brake_pct", "Clutch_pct", "LapDistance_m", "FuelLevel_pct"],
+  "rewinds": [
+    { "truncatedFromTimeS": 0.04, "truncatedToTimeS": 0.02, "rowsRemoved": 1 }
+  ],
+  "pluginVersion": "0.1.0"
+}

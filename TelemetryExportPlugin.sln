@@ -1,0 +1,28 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelemetryExportPlugin", "src\TelemetryExportPlugin\TelemetryExportPlugin.csproj", "{6E3F5C9A-8B2E-4C7E-9C1E-6E1A0B7C9D3F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TelemetryExportPlugin.Tests", "src\TelemetryExportPlugin.Tests\TelemetryExportPlugin.Tests.csproj", "{1B2C3D4E-5F6A-4B7C-8D9E-0F1A2B3C4D5E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6E3F5C9A-8B2E-4C7E-9C1E-6E1A0B7C9D3F}.Debug|Any CPU.ActiveCfg = Debug|AnyCPU
+		{6E3F5C9A-8B2E-4C7E-9C1E-6E1A0B7C9D3F}.Debug|Any CPU.Build.0 = Debug|AnyCPU
+		{6E3F5C9A-8B2E-4C7E-9C1E-6E1A0B7C9D3F}.Release|Any CPU.ActiveCfg = Release|AnyCPU
+		{6E3F5C9A-8B2E-4C7E-9C1E-6E1A0B7C9D3F}.Release|Any CPU.Build.0 = Release|AnyCPU
+		{1B2C3D4E-5F6A-4B7C-8D9E-0F1A2B3C4D5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B2C3D4E-5F6A-4B7C-8D9E-0F1A2B3C4D5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B2C3D4E-5F6A-4B7C-8D9E-0F1A2B3C4D5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B2C3D4E-5F6A-4B7C-8D9E-0F1A2B3C4D5E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

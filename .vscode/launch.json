@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to SimHub (.NET Framework)",
+      "type": "clr",
+      "request": "attach",
+      "processName": "SimHubWPF.exe",
+      "justMyCode": false,
+      "symbolOptions": {
+        "searchPaths": [],
+        "searchMicrosoftSymbolServer": false
+      }
+    },
+    {
+      "name": "Attach to process (pick)",
+      "type": "clr",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "justMyCode": false
+    }
+  ]
+}

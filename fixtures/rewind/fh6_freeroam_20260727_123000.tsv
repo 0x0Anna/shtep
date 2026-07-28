@@ -1,0 +1,7 @@
+Time_s	Paused	Discontinuity	Speed_kmh	RPM	Gear	Throttle_pct	Brake_pct	Clutch_pct	LapDistance_m	FuelLevel_pct
+0.000	0	0	0	900	0	0	0	0	0	100
+0.010	0	0	28.4	2200	1	55	0	0	0.3	100
+0.020	0	0	51.2	3100	2	80	0	0	0.7	100
+0.030	0	0	52	3150	2	80	0	0	0.72	100
+0.040	0	0	68.7	3800	2	95	0	0	1.15	99.9
+0.050	0	0	84.3	4400	3	100	0	0	1.62	99.9

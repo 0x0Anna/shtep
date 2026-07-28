@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <!--
+    Not referencing TelemetryExportPlugin.csproj directly: that project's build
+    depends on SimHub's installed DLLs (SIMHUB_INSTALL_PATH), which the classes
+    under test here deliberately don't - RecordingSession, CrashRecovery,
+    PathValidation, RewindIndex, and SampleTimer's hold-last-value logic have no
+    SimHub/GameReaderCommon dependency (see PLUGIN_IMPLEMENTATION_PLAN.md
+    "Testing notes"). Compiling their sources directly into this test project
+    keeps `dotnet test` runnable without SimHub installed at all.
+  -->
+  <ItemGroup>
+    <Compile Include="..\TelemetryExportPlugin\Recording\RecordingSession.cs" Link="Sut\RecordingSession.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Recording\RecordingSidecar.cs" Link="Sut\RecordingSidecar.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Recording\SampleTimer.cs" Link="Sut\SampleTimer.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Recording\NumberFormat.cs" Link="Sut\NumberFormat.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Recording\CrashRecovery.cs" Link="Sut\CrashRecovery.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Recording\RewindIndex.cs" Link="Sut\RewindIndex.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Boundaries\CircuitBoundary.cs" Link="Sut\CircuitBoundary.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Config\PluginSettings.cs" Link="Sut\PluginSettings.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Config\PathValidation.cs" Link="Sut\PathValidation.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
