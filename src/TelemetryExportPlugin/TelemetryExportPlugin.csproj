@@ -63,6 +63,7 @@
     <Compile Include="Boundaries\RallyBoundary.cs" />
     <Compile Include="Boundaries\CircuitBoundary.cs" />
     <Compile Include="Export\MotecLdWriter.cs" />
+    <Compile Include="Export\MotecLdxWriter.cs" />
     <Compile Include="Export\MotecExporter.cs" />
   </ItemGroup>
 

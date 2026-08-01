@@ -2,13 +2,20 @@
 
 Companion repo to `shakedown-engineer`. Writes TSV + JSON sidecar pairs per
 `SCHEMA.md` (v1.1). Recording itself owns no MoTeC/.ld knowledge — that
-logic is isolated in `Export/` (`MotecLdWriter.cs`, `MotecExporter.cs`) as
-an optional post-processing step, run only after a recording's TSV/sidecar
-pair has been closed and moved to `OutputDir`, gated behind the
-`ExportMotecLd` setting (default off). This lets shtep produce `.ld` files
-standalone, without the Rust converter, while keeping the hot recording
-path (`RecordingSession`, `SampleTimer`, `RewindIndex`, boundary detection)
-entirely unaware `.ld` export exists.
+logic is isolated in `Export/` (`MotecLdWriter.cs`, `MotecLdxWriter.cs`,
+`MotecExporter.cs`) as an optional post-processing step, run only after a
+recording's TSV/sidecar pair has been closed and moved to `OutputDir`,
+gated behind the `ExportMotecLd` setting (default off). This lets shtep
+produce `.ld` files standalone, without the Rust converter, while keeping
+the hot recording path (`RecordingSession`, `SampleTimer`, `RewindIndex`,
+boundary detection) entirely unaware `.ld` export exists.
+
+For circuit stints where the `LapNumber` channel is enabled and actually
+changes, the exporter also writes a companion `{base}.ldx` sidecar with
+lap-boundary markers — confirmed against a real hardware-logged `.ldx`
+sample that i2's lap detection reads this file, not any channel inside the
+`.ld` itself (see `MotecLdxWriter.cs`'s doc comment for how that was
+verified). Rally stage files never get a `.ldx` — no lap concept there.
 
 ## Project setup
 
@@ -38,7 +45,8 @@ entirely unaware `.ld` export exists.
         CircuitBoundary.cs       # pit-lane state + debounce -> stint start/end
       Export/
         MotecLdWriter.cs         # binary .ld writer (ported from MotecLogGenerator)
-        MotecExporter.cs         # TSV+sidecar -> .ld post-processor, opt-in
+        MotecLdxWriter.cs        # .ldx lap-marker sidecar writer (circuit stints only)
+        MotecExporter.cs         # TSV+sidecar -> .ld/.ldx post-processor, opt-in
     TelemetryExportPlugin.Tests/
   ```
 

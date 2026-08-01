@@ -127,6 +127,96 @@ namespace TelemetryExportPlugin.Tests
         }
 
         [Fact]
+        public void Export_CircuitStintWithLapChanges_WritesLdxWithMarkerPerTransition()
+        {
+            string baseName = "fh6_greecetest_20260727_140000";
+            string tsvPath = Path.Combine(_dir, $"{baseName}.tsv");
+            // LapNumber goes 1 -> 1 -> 2 -> 2 -> 3: two transitions, at t=0.020 and t=0.030.
+            File.WriteAllText(tsvPath,
+                "Time_s\tSpeed_kmh\tLapNumber\n" +
+                "0.000\t10\t1\n" +
+                "0.010\t20\t1\n" +
+                "0.020\t30\t2\n" +
+                "0.030\t40\t3\n",
+                new UTF8Encoding(false));
+
+            var sidecar = new RecordingSidecar
+            {
+                Sim = "FH6",
+                SessionType = "stint",
+                Context = "Greece Test",
+                SampleRateHz = 100,
+                Channels = new List<string> { "Speed_kmh", "LapNumber" },
+                PluginVersion = "0.1.0",
+            };
+
+            MotecExporter.Export(tsvPath, sidecar, _dir, baseName);
+
+            string ldxPath = Path.Combine(_dir, $"{baseName}.ldx");
+            Assert.True(File.Exists(ldxPath));
+
+            var doc = System.Xml.Linq.XDocument.Load(ldxPath);
+            var markers = System.Linq.Enumerable.ToList(doc.Descendants("Marker"));
+            Assert.Equal(2, markers.Count);
+
+            var times = System.Linq.Enumerable.Select(markers,
+                m => double.Parse(m.Attribute("Time").Value, System.Globalization.CultureInfo.InvariantCulture));
+            Assert.Equal(new double[] { 20_000, 30_000 }, times);
+        }
+
+        [Fact]
+        public void Export_RallyStage_NeverWritesLdxEvenIfLapNumberColumnPresent()
+        {
+            string baseName = "rbr_stage1_20260727_150000";
+            string tsvPath = Path.Combine(_dir, $"{baseName}.tsv");
+            File.WriteAllText(tsvPath,
+                "Time_s\tSpeed_kmh\tLapNumber\n" +
+                "0.000\t10\t1\n" +
+                "0.010\t20\t2\n",
+                new UTF8Encoding(false));
+
+            var sidecar = new RecordingSidecar
+            {
+                Sim = "rbr",
+                SessionType = "stage", // rally - no lap concept, per SCHEMA.md
+                Context = "Stage 1",
+                SampleRateHz = 100,
+                Channels = new List<string> { "Speed_kmh", "LapNumber" },
+                PluginVersion = "0.1.0",
+            };
+
+            MotecExporter.Export(tsvPath, sidecar, _dir, baseName);
+
+            Assert.False(File.Exists(Path.Combine(_dir, $"{baseName}.ldx")));
+        }
+
+        [Fact]
+        public void Export_CircuitStintWithoutLapNumberColumn_DoesNotWriteLdx()
+        {
+            string baseName = "fh6_greecetest_20260727_160000";
+            string tsvPath = Path.Combine(_dir, $"{baseName}.tsv");
+            File.WriteAllText(tsvPath,
+                "Time_s\tSpeed_kmh\n" +
+                "0.000\t10\n" +
+                "0.010\t20\n",
+                new UTF8Encoding(false));
+
+            var sidecar = new RecordingSidecar
+            {
+                Sim = "FH6",
+                SessionType = "stint",
+                Context = "Greece Test",
+                SampleRateHz = 100,
+                Channels = new List<string> { "Speed_kmh" },
+                PluginVersion = "0.1.0",
+            };
+
+            MotecExporter.Export(tsvPath, sidecar, _dir, baseName);
+
+            Assert.False(File.Exists(Path.Combine(_dir, $"{baseName}.ldx")));
+        }
+
+        [Fact]
         public void Export_EmptyTsv_Throws()
         {
             string baseName = "empty_20260727_120000";
