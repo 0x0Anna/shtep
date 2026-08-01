@@ -32,6 +32,7 @@ namespace TelemetryExportPlugin.Export
             var headerCols = lines[0].Split('\t');
             var channelNames = headerCols.Skip(1).ToArray(); // drop Time_s
             var values = new List<double>[channelNames.Length];
+            var lastKnown = new double[channelNames.Length];
             for (int c = 0; c < values.Length; c++) values[c] = new List<double>();
 
             for (int i = 1; i < lines.Length; i++)
@@ -40,7 +41,16 @@ namespace TelemetryExportPlugin.Export
                 var cells = lines[i].Split('\t');
                 for (int c = 0; c < channelNames.Length; c++)
                 {
-                    values[c].Add(double.Parse(cells[c + 1], CultureInfo.InvariantCulture));
+                    // A missing/empty cell means "no value this row" (see
+                    // RecordingSession.WriteRow) - hold the last known value
+                    // rather than letting double.Parse throw and losing the
+                    // whole .ld export over one gap in one channel.
+                    string cell = c + 1 < cells.Length ? cells[c + 1] : "";
+                    double value = string.IsNullOrEmpty(cell)
+                        ? lastKnown[c]
+                        : double.Parse(cell, CultureInfo.InvariantCulture);
+                    lastKnown[c] = value;
+                    values[c].Add(value);
                 }
             }
 

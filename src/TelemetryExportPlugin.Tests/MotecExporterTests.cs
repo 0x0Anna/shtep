@@ -82,6 +82,51 @@ namespace TelemetryExportPlugin.Tests
         }
 
         [Fact]
+        public void Export_RowWithMissingCell_HoldsLastKnownValueInsteadOfThrowing()
+        {
+            string baseName = "fh6_greecetest_20260727_130000";
+            string tsvPath = Path.Combine(_dir, $"{baseName}.tsv");
+            // Speed_kmh is empty on the second row - a channel absent from
+            // SampleTimer's held state for that tick (see RecordingSession.WriteRow).
+            File.WriteAllText(tsvPath,
+                "Time_s\tSpeed_kmh\tRPM\n" +
+                "0.000\t10\t900\n" +
+                "0.010\t\t1200\n" +
+                "0.020\t35.2\t2400\n",
+                new UTF8Encoding(false));
+
+            var sidecar = new RecordingSidecar
+            {
+                Sim = "FH6",
+                SessionType = "stint",
+                Context = "Greece Test",
+                SampleRateHz = 100,
+                Channels = new List<string> { "Speed_kmh", "RPM" },
+                PluginVersion = "0.1.0",
+            };
+
+            string ldPath = MotecExporter.Export(tsvPath, sidecar, _dir, baseName);
+            Assert.True(File.Exists(ldPath));
+
+            using (var stream = new FileStream(ldPath, FileMode.Open, FileAccess.Read))
+            using (var reader = new BinaryReader(stream))
+            {
+                stream.Seek(8, SeekOrigin.Begin);
+                uint metaPtr = reader.ReadUInt32();
+
+                stream.Seek(metaPtr, SeekOrigin.Begin);
+                reader.ReadUInt32(); // prev
+                reader.ReadUInt32(); // next
+                uint dataPtr0 = reader.ReadUInt32();
+
+                stream.Seek(dataPtr0, SeekOrigin.Begin);
+                Assert.Equal(10.0f, reader.ReadSingle());
+                Assert.Equal(10.0f, reader.ReadSingle()); // held from row 0, not a parse failure
+                Assert.Equal(35.2f, reader.ReadSingle());
+            }
+        }
+
+        [Fact]
         public void Export_EmptyTsv_Throws()
         {
             string baseName = "empty_20260727_120000";
