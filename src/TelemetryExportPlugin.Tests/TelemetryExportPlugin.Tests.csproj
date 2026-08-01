@@ -32,6 +32,9 @@
     <Compile Include="..\TelemetryExportPlugin\Boundaries\CircuitBoundary.cs" Link="Sut\CircuitBoundary.cs" />
     <Compile Include="..\TelemetryExportPlugin\Config\PluginSettings.cs" Link="Sut\PluginSettings.cs" />
     <Compile Include="..\TelemetryExportPlugin\Config\PathValidation.cs" Link="Sut\PathValidation.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Export\MotecLdWriter.cs" Link="Sut\MotecLdWriter.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Export\MotecLdxWriter.cs" Link="Sut\MotecLdxWriter.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Export\MotecExporter.cs" Link="Sut\MotecExporter.cs" />
   </ItemGroup>
 
   <ItemGroup>

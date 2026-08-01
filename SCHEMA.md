@@ -5,6 +5,12 @@ the data — a file's existence and its start/end timestamps in the sidecar *are
 the session boundary. Any TSV-capable tool (Excel, pandas, awk) can open the data
 file directly with zero knowledge of this spec.
 
+This file pair is also the input contract for shtep's own optional MoTeC
+`.ld` exporter (`src/TelemetryExportPlugin/Export/`, gated behind the
+`ExportMotecLd` setting) — it reads a finished pair back exactly the way
+any external converter would, after `Close()` has moved both files to
+`OutputDir`.
+
 ## File pair, per recording
 
 Every recording produces **two files with the same base name**:
