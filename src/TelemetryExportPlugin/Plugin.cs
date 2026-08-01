@@ -6,8 +6,10 @@ using System.Text.RegularExpressions;
 using System.Windows.Media;
 using GameReaderCommon;
 using SimHub.Plugins;
+using System.IO;
 using TelemetryExportPlugin.Boundaries;
 using TelemetryExportPlugin.Config;
+using TelemetryExportPlugin.Export;
 using TelemetryExportPlugin.Recording;
 
 namespace TelemetryExportPlugin
@@ -335,7 +337,35 @@ namespace TelemetryExportPlugin
             };
 
             _session.Close(sidecar);
+
+            if (Settings.ExportMotecLd)
+            {
+                ExportMotecLdIfEnabled(_session.BaseName, sidecar);
+            }
+
             _session = null;
+        }
+
+        // Runs strictly after RecordingSession.Close() has moved the .tsv/.meta.json
+        // pair into OutputDir - reads the finished pair back rather than hooking
+        // into the live write path. Failure here must never take down recording,
+        // so it's caught and logged rather than propagated.
+        private void ExportMotecLdIfEnabled(string baseName, RecordingSidecar sidecar)
+        {
+            try
+            {
+                string tsvPath = Path.Combine(Settings.OutputDir, $"{baseName}.tsv");
+                string motecOutputDir = string.IsNullOrWhiteSpace(Settings.MotecOutputDir)
+                    ? Settings.OutputDir
+                    : Settings.MotecOutputDir;
+
+                string ldPath = MotecExporter.Export(tsvPath, sidecar, motecOutputDir, baseName);
+                SimHub.Logging.Current.Info($"TelemetryExportPlugin: wrote MoTeC log {ldPath}");
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Error($"TelemetryExportPlugin: MoTeC export failed for {baseName}: {ex}");
+            }
         }
 
         // Throttled raw-channel dump to SimHub's log (not the recorded TSV) - lets

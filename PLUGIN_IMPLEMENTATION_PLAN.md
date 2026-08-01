@@ -1,8 +1,14 @@
 # SimHub Telemetry Export Plugin — v1 Implementation Plan
 
 Companion repo to `shakedown-engineer`. Writes TSV + JSON sidecar pairs per
-`SCHEMA.md` (v1.1). This repo owns recording only — no MoTeC/.ld knowledge
-lives here; that stays in the Rust converter.
+`SCHEMA.md` (v1.1). Recording itself owns no MoTeC/.ld knowledge — that
+logic is isolated in `Export/` (`MotecLdWriter.cs`, `MotecExporter.cs`) as
+an optional post-processing step, run only after a recording's TSV/sidecar
+pair has been closed and moved to `OutputDir`, gated behind the
+`ExportMotecLd` setting (default off). This lets shtep produce `.ld` files
+standalone, without the Rust converter, while keeping the hot recording
+path (`RecordingSession`, `SampleTimer`, `RewindIndex`, boundary detection)
+entirely unaware `.ld` export exists.
 
 ## Project setup
 
@@ -30,6 +36,9 @@ lives here; that stays in the Rust converter.
       Boundaries/
         RallyBoundary.cs         # stage-start/stage-end event subscription
         CircuitBoundary.cs       # pit-lane state + debounce -> stint start/end
+      Export/
+        MotecLdWriter.cs         # binary .ld writer (ported from MotecLogGenerator)
+        MotecExporter.cs         # TSV+sidecar -> .ld post-processor, opt-in
     TelemetryExportPlugin.Tests/
   ```
 
@@ -49,6 +58,10 @@ lives here; that stays in the Rust converter.
   list for v1 and become a proper checklist UI later; don't over-build this
   before you know which `StatusDataBase` properties are actually reliable
   per-sim
+- `ExportMotecLd` (bool, default `false`) — after each recording closes,
+  also write a MoTeC `.ld` file from the finished TSV/sidecar pair
+- `MotecOutputDir` (path, optional) — destination for `.ld` files; blank
+  means same as `OutputDir`
 
 All path fields validated at save time per SCHEMA.md's "Startup & config
 validation" section — attempt create, warn clearly if it fails.
@@ -122,7 +135,13 @@ validation" section — attempt create, warn clearly if it fails.
 
 ## Explicit non-goals for v1
 
-- No .ld/.ldx knowledge in this repo — stays in `shakedown-engineer`.
+- No .ld/.ldx knowledge in the live recording path (`RecordingSession`,
+  `SampleTimer`, boundary detection, etc.) — that stays isolated to the
+  opt-in `Export/` post-processor, which runs after a recording is already
+  closed and moved to `OutputDir`. `shakedown-engineer` remains a valid,
+  independent way to produce `.ld` files from the TSV/sidecar pair; this
+  repo's own exporter is an alternative for standalone use, not a
+  replacement for that companion repo.
 - No lap/marker offsets embedded in circuit files (per-stint files instead).
 - No binary framing, no external DB/broker in the recording path.
 - No live fan-out to other consumers — out of scope until an actual need for

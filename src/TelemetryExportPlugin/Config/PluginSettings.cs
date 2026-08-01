@@ -38,6 +38,24 @@ namespace TelemetryExportPlugin.Config
         public RewindHandlingMode RewindHandling { get; set; } = RewindHandlingMode.Truncate;
 
         /// <summary>
+        /// Post-processing step: after a recording's .tsv/.meta.json pair lands in
+        /// OutputDir, also write a MoTeC .ld file from it (see Export/MotecExporter.cs).
+        /// Off by default - shtep's primary output is still the TSV/JSON pair;
+        /// this is an opt-in convenience for using shtep standalone, without the
+        /// shakedown-engineer companion converter. Runs after Close(), not on the
+        /// live write path, so it never affects recording itself.
+        /// </summary>
+        public bool ExportMotecLd { get; set; } = false;
+
+        /// <summary>
+        /// Destination directory for generated .ld files. Empty means "same as
+        /// OutputDir". Independently configurable since some users may want .ld
+        /// files routed straight into i2's watched folder while keeping raw
+        /// TSV/JSON elsewhere.
+        /// </summary>
+        public string MotecOutputDir { get; set; } = "";
+
+        /// <summary>
         /// Throttled raw-channel dump to SimHub's log (not the recorded TSV) for
         /// verifying ChannelMap accessors against a new sim's real telemetry
         /// without attaching a debugger. Off by default - only turn on while

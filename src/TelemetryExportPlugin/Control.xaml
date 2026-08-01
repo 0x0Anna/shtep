@@ -34,6 +34,12 @@
 
             <TextBlock Text="Rewind handling" Margin="0,12,0,2"/>
             <ComboBox x:Name="RewindHandlingCombo" SelectionChanged="RewindHandlingCombo_SelectionChanged"/>
+
+            <CheckBox x:Name="ExportMotecLdCheckBox" Content="Also export a MoTeC (.ld) file after each recording"
+                      Margin="0,16,0,0" Checked="ExportMotecLdCheckBox_Changed" Unchecked="ExportMotecLdCheckBox_Changed"/>
+
+            <TextBlock Text="MoTeC (.ld) output directory (blank = same as output directory)" Margin="0,8,0,2"/>
+            <TextBox x:Name="MotecOutputDirBox" TextChanged="MotecOutputDirBox_TextChanged"/>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

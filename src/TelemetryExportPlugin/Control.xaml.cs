@@ -27,6 +27,9 @@ namespace TelemetryExportPlugin
 
             RewindHandlingCombo.ItemsSource = System.Enum.GetValues(typeof(RewindHandlingMode));
             RewindHandlingCombo.SelectedItem = _plugin.Settings.RewindHandling;
+
+            ExportMotecLdCheckBox.IsChecked = _plugin.Settings.ExportMotecLd;
+            MotecOutputDirBox.Text = _plugin.Settings.MotecOutputDir;
             _loading = false;
         }
 
@@ -100,6 +103,18 @@ namespace TelemetryExportPlugin
             {
                 _plugin.Settings.RewindHandling = mode;
             }
+        }
+
+        private void ExportMotecLdCheckBox_Changed(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _plugin.Settings.ExportMotecLd = ExportMotecLdCheckBox.IsChecked == true;
+        }
+
+        private void MotecOutputDirBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_loading) return;
+            _plugin.Settings.MotecOutputDir = MotecOutputDirBox.Text;
         }
     }
 }
