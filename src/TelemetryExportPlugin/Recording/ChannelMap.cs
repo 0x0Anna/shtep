@@ -86,6 +86,35 @@ namespace TelemetryExportPlugin.Recording
                 ("TyreTempFR_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontRight)),
                 ("TyreTempRL_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearLeft)),
                 ("TyreTempRR_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearRight)),
+                // Per-tyre temperature spread (inner/middle/outer across the tread),
+                // distinct from the single averaged TyreTempFL_C etc. above - genuinely
+                // new data, not a duplicate. Same already-Celsius assumption.
+                ("TyreTempFL_Inner_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontLeftInner)),
+                ("TyreTempFL_Middle_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontLeftMiddle)),
+                ("TyreTempFL_Outer_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontLeftOuter)),
+                ("TyreTempFR_Inner_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontRightInner)),
+                ("TyreTempFR_Middle_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontRightMiddle)),
+                ("TyreTempFR_Outer_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontRightOuter)),
+                ("TyreTempRL_Inner_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearLeftInner)),
+                ("TyreTempRL_Middle_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearLeftMiddle)),
+                ("TyreTempRL_Outer_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearLeftOuter)),
+                ("TyreTempRR_Inner_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearRightInner)),
+                ("TyreTempRR_Middle_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearRightMiddle)),
+                ("TyreTempRR_Outer_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearRightOuter)),
+                // CarCoordinates/RelativeCarCoordinates are generic StatusDataBase
+                // Double[] (confirmed by reflection) - POSSIBLY the answer to the
+                // PosX/Y/Z gap SCHEMA.md has flagged as unavailable since v1, but
+                // array length/axis order/frame are all UNCONFIRMED (never checked
+                // live before now). Wired provisionally with a generic bounds-checked
+                // index rather than assuming length 3 - TryGetArrayElement returns
+                // null past the array's actual length instead of throwing, so this is
+                // safe to ship even if the array turns out to be a different size.
+                ("CarPosX_raw", (d, sim) => TryGet(() => TryGetArrayElement(d.CarCoordinates, 0))),
+                ("CarPosY_raw", (d, sim) => TryGet(() => TryGetArrayElement(d.CarCoordinates, 1))),
+                ("CarPosZ_raw", (d, sim) => TryGet(() => TryGetArrayElement(d.CarCoordinates, 2))),
+                ("CarRelPosX_raw", (d, sim) => TryGet(() => TryGetArrayElement(d.RelativeCarCoordinates, 0))),
+                ("CarRelPosY_raw", (d, sim) => TryGet(() => TryGetArrayElement(d.RelativeCarCoordinates, 1))),
+                ("CarRelPosZ_raw", (d, sim) => TryGet(() => TryGetArrayElement(d.RelativeCarCoordinates, 2))),
                 // OrientationYaw/Pitch/Roll are generic StatusDataBase Doubles (confirmed by
                 // reflection) but unit (radians vs degrees) is UNCONFIRMED - named with a
                 // "_raw" suffix rather than guessing, same lesson as SteerAngle turning out
@@ -173,7 +202,37 @@ namespace TelemetryExportPlugin.Recording
                 ("SuspDamageRL_raw", (d, sim) => RawPhysicsAccessor.SuspensionDamageRaw(d, sim, 2)),
                 ("SuspDamageRR_raw", (d, sim) => RawPhysicsAccessor.SuspensionDamageRaw(d, sim, 3)),
                 ("TyresOutCount", (d, sim) => RawPhysicsAccessor.TyresOutCount(d, sim)),
+                ("DiscLifeFL_raw", (d, sim) => RawPhysicsAccessor.DiscLifeRaw(d, sim, 0)),
+                ("DiscLifeFR_raw", (d, sim) => RawPhysicsAccessor.DiscLifeRaw(d, sim, 1)),
+                ("DiscLifeRL_raw", (d, sim) => RawPhysicsAccessor.DiscLifeRaw(d, sim, 2)),
+                ("DiscLifeRR_raw", (d, sim) => RawPhysicsAccessor.DiscLifeRaw(d, sim, 3)),
+                ("PadLifeFL_raw", (d, sim) => RawPhysicsAccessor.PadLifeRaw(d, sim, 0)),
+                ("PadLifeFR_raw", (d, sim) => RawPhysicsAccessor.PadLifeRaw(d, sim, 1)),
+                ("PadLifeRL_raw", (d, sim) => RawPhysicsAccessor.PadLifeRaw(d, sim, 2)),
+                ("PadLifeRR_raw", (d, sim) => RawPhysicsAccessor.PadLifeRaw(d, sim, 3)),
+                ("TyreForceFxFL_raw", (d, sim) => RawPhysicsAccessor.TyreForceFxRaw(d, sim, 0)),
+                ("TyreForceFxFR_raw", (d, sim) => RawPhysicsAccessor.TyreForceFxRaw(d, sim, 1)),
+                ("TyreForceFxRL_raw", (d, sim) => RawPhysicsAccessor.TyreForceFxRaw(d, sim, 2)),
+                ("TyreForceFxRR_raw", (d, sim) => RawPhysicsAccessor.TyreForceFxRaw(d, sim, 3)),
+                ("TyreForceFyFL_raw", (d, sim) => RawPhysicsAccessor.TyreForceFyRaw(d, sim, 0)),
+                ("TyreForceFyFR_raw", (d, sim) => RawPhysicsAccessor.TyreForceFyRaw(d, sim, 1)),
+                ("TyreForceFyRL_raw", (d, sim) => RawPhysicsAccessor.TyreForceFyRaw(d, sim, 2)),
+                ("TyreForceFyRR_raw", (d, sim) => RawPhysicsAccessor.TyreForceFyRaw(d, sim, 3)),
+                ("TyreMomentMzFL_raw", (d, sim) => RawPhysicsAccessor.TyreMomentMzRaw(d, sim, 0)),
+                ("TyreMomentMzFR_raw", (d, sim) => RawPhysicsAccessor.TyreMomentMzRaw(d, sim, 1)),
+                ("TyreMomentMzRL_raw", (d, sim) => RawPhysicsAccessor.TyreMomentMzRaw(d, sim, 2)),
+                ("TyreMomentMzRR_raw", (d, sim) => RawPhysicsAccessor.TyreMomentMzRaw(d, sim, 3)),
+                ("LocalVelocityX_raw", (d, sim) => RawPhysicsAccessor.LocalVelocityRaw(d, sim, 0)),
+                ("LocalVelocityY_raw", (d, sim) => RawPhysicsAccessor.LocalVelocityRaw(d, sim, 1)),
+                ("LocalVelocityZ_raw", (d, sim) => RawPhysicsAccessor.LocalVelocityRaw(d, sim, 2)),
             };
+
+        // Bounds-checked array index for generic StatusDataBase array properties
+        // (CarCoordinates/RelativeCarCoordinates) whose length isn't confirmed -
+        // returns null past the array's actual length instead of throwing, same
+        // "omit rather than sentinel" contract as every other channel here.
+        private static double? TryGetArrayElement(double[] array, int index) =>
+            array != null && index < array.Length ? (double?)array[index] : null;
 
         private static double? ParseGear(string gear)
         {

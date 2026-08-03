@@ -136,5 +136,50 @@ namespace TelemetryExportPlugin.Recording
         // on rally stage detection). Unverified live so far.
         public static double? TyresOutCount(StatusDataBase d, string gameName) =>
             TryGetPhysics(d, gameName, out var p) ? (double?)p.NumberOfTyresOut : null;
+
+        // Same per-corner convention. No generic equivalent. Brake disc wear
+        // fraction, distinct from padLife below and from BrakeTemperature* (already
+        // generic). Range/unit unconfirmed (likely 0-1 remaining-life fraction).
+        public static double? DiscLifeRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.discLife != null && corner < p.discLife.Length
+                ? (double?)p.discLife[corner]
+                : null;
+
+        // Same per-corner convention. Brake pad wear, distinct from discLife above.
+        public static double? PadLifeRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.padLife != null && corner < p.padLife.Length
+                ? (double?)p.padLife[corner]
+                : null;
+
+        // Same per-corner convention. Tyre contact-patch force vector components -
+        // fx/fy/mz are the raw struct's own field names; which physical axis (car
+        // longitudinal vs lateral, tyre-frame vs car-frame) each maps to is NOT
+        // confirmed here, so don't assume fx = longitudinal without a live test that
+        // correlates it against a known maneuver (e.g. fy should track LatAccel_g
+        // under sustained cornering if it really is lateral force).
+        public static double? TyreForceFxRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.fx != null && corner < p.fx.Length
+                ? (double?)p.fx[corner]
+                : null;
+
+        public static double? TyreForceFyRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.fy != null && corner < p.fy.Length
+                ? (double?)p.fy[corner]
+                : null;
+
+        // Self-aligning moment per corner.
+        public static double? TyreMomentMzRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.mz != null && corner < p.mz.Length
+                ? (double?)p.mz[corner]
+                : null;
+
+        // Car-frame velocity vector (Single[3], not per-corner - `axis` is 0/1/2).
+        // Which axis is longitudinal/lateral/vertical is UNCONFIRMED - don't assume
+        // axis 0 = forward without a live test (e.g. axis magnitude should track
+        // Speed_kmh closely under straight-line driving if it's the longitudinal one).
+        public static double? LocalVelocityRaw(StatusDataBase d, string gameName, int axis) =>
+            TryGetPhysics(d, gameName, out var p) && p.LocalVelocity != null && axis < p.LocalVelocity.Length
+                ? (double?)p.LocalVelocity[axis]
+                : null;
     }
 }

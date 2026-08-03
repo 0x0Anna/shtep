@@ -89,10 +89,13 @@ namespace TelemetryExportPlugin.Config
         /// row unconditionally regardless of this list (SCHEMA.md: always present).
         /// Limited to channels ChannelMap.cs actually confirmed against the
         /// installed GameReaderCommon.dll/ACSharedMemory.dll; see ChannelMap.cs's
-        /// header comment and RawPhysicsAccessor.cs for what's still missing
-        /// (PosX/Y/Z) and what's sim-gated (SteerRatio, SuspTravel*_mm -
+        /// header comment and RawPhysicsAccessor.cs for what's sim-gated
+        /// (SteerRatio, SuspTravel*_mm, and most _raw-suffixed channels below -
         /// AssettoCorsaRally only; other sims just always report null for these,
-        /// same as any other unsupported channel).
+        /// same as any other unsupported channel). CarPosX/Y/Z_raw and
+        /// CarRelPosX/Y/Z_raw are a provisional first attempt at the position gap
+        /// this list lacked since v1 - array length/axis order/frame unconfirmed,
+        /// see ChannelMap.cs's comment on those entries.
         ///
         /// [JsonProperty(ObjectCreationHandling = Replace)] documents the intent
         /// (stop plain Json.NET's default Auto behavior from appending deserialized
@@ -129,6 +132,24 @@ namespace TelemetryExportPlugin.Config
             "TyreTempFR_C",
             "TyreTempRL_C",
             "TyreTempRR_C",
+            "TyreTempFL_Inner_C",
+            "TyreTempFL_Middle_C",
+            "TyreTempFL_Outer_C",
+            "TyreTempFR_Inner_C",
+            "TyreTempFR_Middle_C",
+            "TyreTempFR_Outer_C",
+            "TyreTempRL_Inner_C",
+            "TyreTempRL_Middle_C",
+            "TyreTempRL_Outer_C",
+            "TyreTempRR_Inner_C",
+            "TyreTempRR_Middle_C",
+            "TyreTempRR_Outer_C",
+            "CarPosX_raw",
+            "CarPosY_raw",
+            "CarPosZ_raw",
+            "CarRelPosX_raw",
+            "CarRelPosY_raw",
+            "CarRelPosZ_raw",
             "OrientationYaw_raw",
             "OrientationPitch_raw",
             "OrientationRoll_raw",
@@ -197,6 +218,29 @@ namespace TelemetryExportPlugin.Config
             "SuspDamageRL_raw",
             "SuspDamageRR_raw",
             "TyresOutCount",
+            "DiscLifeFL_raw",
+            "DiscLifeFR_raw",
+            "DiscLifeRL_raw",
+            "DiscLifeRR_raw",
+            "PadLifeFL_raw",
+            "PadLifeFR_raw",
+            "PadLifeRL_raw",
+            "PadLifeRR_raw",
+            "TyreForceFxFL_raw",
+            "TyreForceFxFR_raw",
+            "TyreForceFxRL_raw",
+            "TyreForceFxRR_raw",
+            "TyreForceFyFL_raw",
+            "TyreForceFyFR_raw",
+            "TyreForceFyRL_raw",
+            "TyreForceFyRR_raw",
+            "TyreMomentMzFL_raw",
+            "TyreMomentMzFR_raw",
+            "TyreMomentMzRL_raw",
+            "TyreMomentMzRR_raw",
+            "LocalVelocityX_raw",
+            "LocalVelocityY_raw",
+            "LocalVelocityZ_raw",
         };
     }
 }
