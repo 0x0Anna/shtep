@@ -19,6 +19,10 @@ namespace TelemetryExportPlugin
             OutputDirBox.Text = _plugin.Settings.OutputDir;
             SampleRateBox.Text = _plugin.Settings.SampleRateHz.ToString(CultureInfo.InvariantCulture);
             PurgeCheckBox.IsChecked = _plugin.Settings.PurgeIncompleteOnStartup;
+
+            RecordingTriggerCombo.ItemsSource = System.Enum.GetValues(typeof(RecordingTriggerMode));
+            RecordingTriggerCombo.SelectedItem = _plugin.Settings.RecordingTrigger;
+
             PitDebounceBox.Text = _plugin.Settings.PitLaneDebounceMs.ToString(CultureInfo.InvariantCulture);
             HeuristicSpeedBox.Text = _plugin.Settings.HeuristicDiscontinuitySpeedKmh.ToString(CultureInfo.InvariantCulture);
 
@@ -30,6 +34,7 @@ namespace TelemetryExportPlugin
 
             ExportMotecLdCheckBox.IsChecked = _plugin.Settings.ExportMotecLd;
             MotecOutputDirBox.Text = _plugin.Settings.MotecOutputDir;
+            VerboseDiagnosticLoggingCheckBox.IsChecked = _plugin.Settings.VerboseDiagnosticLogging;
             _loading = false;
         }
 
@@ -67,6 +72,15 @@ namespace TelemetryExportPlugin
         {
             if (_loading) return;
             _plugin.Settings.PurgeIncompleteOnStartup = PurgeCheckBox.IsChecked == true;
+        }
+
+        private void RecordingTriggerCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (_loading) return;
+            if (RecordingTriggerCombo.SelectedItem is RecordingTriggerMode mode)
+            {
+                _plugin.Settings.RecordingTrigger = mode;
+            }
         }
 
         private void PitDebounceBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -115,6 +129,12 @@ namespace TelemetryExportPlugin
         {
             if (_loading) return;
             _plugin.Settings.MotecOutputDir = MotecOutputDirBox.Text;
+        }
+
+        private void VerboseDiagnosticLoggingCheckBox_Changed(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _plugin.Settings.VerboseDiagnosticLogging = VerboseDiagnosticLoggingCheckBox.IsChecked == true;
         }
     }
 }

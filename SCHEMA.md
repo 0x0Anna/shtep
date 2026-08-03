@@ -32,12 +32,36 @@ Every recording produces **two files with the same base name**:
 
 Example: `rbr_maantie1_20260727_143205.tsv` / `.meta.json`
 
+## Recording trigger
+
+A config toggle (`RecordingTrigger`, default `Automatic`) selects what opens
+and closes a session:
+
+- **`Automatic`** (default): the write lifecycle below — stage-start/end
+  (rally) or pit-exit/entry (circuit, debounced).
+- **`SimHubRecording`**: session start/end instead follows SimHub's own
+  record toggle, read from `StatusDataBase.ReplayMode` (a plain `string`
+  property, confirmed by reflecting `GameReaderCommon.dll`) — observed live to
+  take exactly the values `"Record"` / `"Live"`, tracking SimHub's record
+  toggle every tick. Unlike an earlier attempt at this (edge-triggering off
+  `DataCorePlugin.LoggingLastMessage`, SimHub's transient most-recent log
+  line), `ReplayMode` is a persistent per-tick property, so the session
+  start/end just follows its current value directly — no latch needed. In
+  this mode CircuitBoundary/RallyBoundary are not fed and never open/close a
+  session themselves.
+
 ## Write lifecycle
 
-1. On stage-start (rally) or pit-exit (circuit, debounced): open
+1. On stage-start (rally) or pit-exit (circuit, debounced) — or, in
+   `SimHubRecording` trigger mode, on SimHub's own record-start: open
    `{TempDir}/{base}.tsv.partial`, write the header row immediately.
 2. Stream one row per sample tick (see Sampling below) as telemetry arrives.
-3. On stage-end (rally) or pit-entry (circuit, debounced):
+3. On stage-end (rally), pit-entry (circuit, debounced), **or the game
+   disconnecting mid-session (any trigger mode)** — all of the above only run
+   from inside the per-tick data callback, which stops seeing real telemetry
+   the instant the game disconnects, so disconnect itself is treated as an
+   implicit end rather than leaving the session open until the plugin/SimHub
+   shuts down:
    - Close the data file.
    - Write `{TempDir}/{base}.meta.json`.
    - Move the `.meta.json` **first**, then rename/move `.tsv.partial` → `.tsv`
@@ -168,11 +192,18 @@ it isn't told to skip it.
 | `Throttle_pct`    | 0–100  |                                          |
 | `Brake_pct`       | 0–100  |                                          |
 | `Clutch_pct`      | 0–100  |                                          |
-| `SteerAngle_deg`  | deg    | signed, + = right                       |
+| `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0); **sign convention unconfirmed** - don't assume + = either direction until a live full-lock test notes the actual direction at the time |
 | `LapDistance_m`   | m      | distance into stage/lap                 |
+| `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it    |
 | `PosX_m`/`PosY_m`/`PosZ_m` | m | world-space, if sim exposes it   |
 | `SuspTravelFL_mm` etc. (FL/FR/RL/RR) | mm | if sim exposes it     |
 | `TyreTemp*` etc.  | °C     | per-corner, if sim exposes it            |
+| `LatAccel_g`      | g      | ISO seat-frame lateral (sway)             |
+| `LongAccel_g`     | g      | ISO seat-frame longitudinal (surge)       |
+| `VertAccel_g`     | g      | ISO seat-frame vertical (heave)           |
+| `ABSActive`       | 0/1    |                                          |
+| `AirTemp_C`       | °C     |                                          |
+| `TrackTemp_C`     | °C     |                                          |
 | `FuelLevel_pct`   | 0–100  |                                          |
 | `LapNumber`       | —      | circuit only, absent in rally files      |
 
