@@ -57,6 +57,13 @@ namespace TelemetryExportPlugin.Recording
                 ("Throttle_pct", (d, sim) => TryGet(() => (double?)d.Throttle)),
                 ("Brake_pct", (d, sim) => TryGet(() => (double?)d.Brake)),
                 ("Clutch_pct", (d, sim) => TryGet(() => (double?)d.Clutch)),
+                // GameReaderCommon.StatusDataBase.Handbrake exists generically (confirmed
+                // by reflecting the installed GameReaderCommon.dll) but is unwired until
+                // now. Scale (0-100 vs 0-1) is UNCONFIRMED - Throttle/Brake/Clutch turned
+                // out to already be 0-100 on FH6 despite an initial *100 assumption (see
+                // header comment above), so don't assume Handbrake matches without a live
+                // capture that actually pulls the handbrake.
+                ("Handbrake_pct", (d, sim) => TryGet(() => (double?)d.Handbrake)),
                 ("LapDistance_m", (d, sim) => TryGet(() => (double?)d.TrackPositionMeters)),
                 ("FuelLevel_pct", (d, sim) => TryGet(() => (double?)d.FuelPercent)),
                 ("LapNumber", (d, sim) => TryGet(() => (double?)d.CurrentLap)),
@@ -64,14 +71,55 @@ namespace TelemetryExportPlugin.Recording
                 ("LongAccel_g", (d, sim) => TryGet(() => d.AccelerationSurge)),
                 ("VertAccel_g", (d, sim) => TryGet(() => d.AccelerationHeave)),
                 ("ABSActive", (d, sim) => TryGet(() => (double?)d.ABSActive)),
+                // Mirror of ABSActive - same generic Int32 flag shape, confirmed present
+                // by reflecting GameReaderCommon.dll, unwired until now.
+                ("TCActive", (d, sim) => TryGet(() => (double?)d.TCActive)),
                 ("AirTemp_C", (d, sim) => TryGet(() => (double?)d.AirTemperature)),
                 ("TrackTemp_C", (d, sim) => TryGet(() => (double?)d.RoadTemperature)),
+                // TyreTemperatureFront/RearLeft/Right are generic StatusDataBase Doubles
+                // (confirmed by reflection) - treated as already-Celsius the same way
+                // AirTemperature/RoadTemperature are above (StatusDataBase.TemperatureUnit
+                // exists but isn't consulted here, consistent with the existing AirTemp_C/
+                // TrackTemp_C channels). SCHEMA.md listed this channel as wanted since v1;
+                // this wires it up for the first time.
+                ("TyreTempFL_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontLeft)),
+                ("TyreTempFR_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureFrontRight)),
+                ("TyreTempRL_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearLeft)),
+                ("TyreTempRR_C", (d, sim) => TryGet(() => (double?)d.TyreTemperatureRearRight)),
+                // OrientationYaw/Pitch/Roll are generic StatusDataBase Doubles (confirmed by
+                // reflection) but unit (radians vs degrees) is UNCONFIRMED - named with a
+                // "_raw" suffix rather than guessing, same lesson as SteerAngle turning out
+                // not to be degrees despite its name (see RawPhysicsAccessor.cs). Rename to
+                // _deg/_rad once a live test settles it.
+                ("OrientationYaw_raw", (d, sim) => TryGet(() => (double?)d.OrientationYaw)),
+                ("OrientationPitch_raw", (d, sim) => TryGet(() => (double?)d.OrientationPitch)),
+                ("OrientationRoll_raw", (d, sim) => TryGet(() => (double?)d.OrientationRoll)),
                 ("LapDistancePct", (d, sim) => TryGet(() => (double?)d.TrackPositionPercent)),
                 ("SteerRatio", (d, sim) => RawPhysicsAccessor.SteerRatio(d, sim)),
                 ("SuspTravelFL_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 0)),
                 ("SuspTravelFR_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 1)),
                 ("SuspTravelRL_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 2)),
                 ("SuspTravelRR_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 3)),
+                ("WheelLoadFL_N", (d, sim) => RawPhysicsAccessor.WheelLoadN(d, sim, 0)),
+                ("WheelLoadFR_N", (d, sim) => RawPhysicsAccessor.WheelLoadN(d, sim, 1)),
+                ("WheelLoadRL_N", (d, sim) => RawPhysicsAccessor.WheelLoadN(d, sim, 2)),
+                ("WheelLoadRR_N", (d, sim) => RawPhysicsAccessor.WheelLoadN(d, sim, 3)),
+                ("WheelAngularSpeedFL_raw", (d, sim) => RawPhysicsAccessor.WheelAngularSpeedRaw(d, sim, 0)),
+                ("WheelAngularSpeedFR_raw", (d, sim) => RawPhysicsAccessor.WheelAngularSpeedRaw(d, sim, 1)),
+                ("WheelAngularSpeedRL_raw", (d, sim) => RawPhysicsAccessor.WheelAngularSpeedRaw(d, sim, 2)),
+                ("WheelAngularSpeedRR_raw", (d, sim) => RawPhysicsAccessor.WheelAngularSpeedRaw(d, sim, 3)),
+                ("WheelPressureFL_raw", (d, sim) => RawPhysicsAccessor.WheelPressureRaw(d, sim, 0)),
+                ("WheelPressureFR_raw", (d, sim) => RawPhysicsAccessor.WheelPressureRaw(d, sim, 1)),
+                ("WheelPressureRL_raw", (d, sim) => RawPhysicsAccessor.WheelPressureRaw(d, sim, 2)),
+                ("WheelPressureRR_raw", (d, sim) => RawPhysicsAccessor.WheelPressureRaw(d, sim, 3)),
+                ("SlipAngleFL_raw", (d, sim) => RawPhysicsAccessor.SlipAngleRaw(d, sim, 0)),
+                ("SlipAngleFR_raw", (d, sim) => RawPhysicsAccessor.SlipAngleRaw(d, sim, 1)),
+                ("SlipAngleRL_raw", (d, sim) => RawPhysicsAccessor.SlipAngleRaw(d, sim, 2)),
+                ("SlipAngleRR_raw", (d, sim) => RawPhysicsAccessor.SlipAngleRaw(d, sim, 3)),
+                ("SlipRatioFL", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 0)),
+                ("SlipRatioFR", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 1)),
+                ("SlipRatioRL", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 2)),
+                ("SlipRatioRR", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 3)),
             };
 
         private static double? ParseGear(string gear)

@@ -65,5 +65,44 @@ namespace TelemetryExportPlugin.Recording
             TryGetPhysics(d, gameName, out var p) && p.SuspensionTravel != null && corner < p.SuspensionTravel.Length
                 ? (double?)(p.SuspensionTravel[corner] * 1000.0)
                 : null;
+
+        // Same FL/FR/RL/RR, Single[4] convention as SuspensionTravel above - confirmed
+        // by reflection only so far, NOT yet against a live capture. Unit is assumed
+        // Newtons per Kunos's public AC SDK docs, but per feedback_simhub_research_method
+        // this repo doesn't trust docs alone - treat as unconfirmed until a live test
+        // shows plausible magnitudes (e.g. load rising under braking/cornering).
+        public static double? WheelLoadN(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.WheelLoad != null && corner < p.WheelLoad.Length
+                ? (double?)p.WheelLoad[corner]
+                : null;
+
+        // Same per-corner convention. Unit unconfirmed (rad/s is the commonly cited
+        // value for this field in Kunos's SDK docs, but that's not verified here) -
+        // channel is named without a unit suffix until a live test settles it.
+        public static double? WheelAngularSpeedRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.WheelAngularSpeed != null && corner < p.WheelAngularSpeed.Length
+                ? (double?)p.WheelAngularSpeed[corner]
+                : null;
+
+        // Same per-corner convention. Unit unconfirmed (PSI vs kPa vs bar).
+        public static double? WheelPressureRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.WheelsPressure != null && corner < p.WheelsPressure.Length
+                ? (double?)p.WheelsPressure[corner]
+                : null;
+
+        // Same per-corner convention. Unit unconfirmed (deg vs rad) - same trap
+        // SteerAngle turned out to have (see SteerRatio above), so don't assume
+        // degrees without a live test.
+        public static double? SlipAngleRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.slipAngle != null && corner < p.slipAngle.Length
+                ? (double?)p.slipAngle[corner]
+                : null;
+
+        // Same per-corner convention. Dimensionless ratio by definition (no unit
+        // suffix needed), but magnitude/sign convention still unconfirmed live.
+        public static double? SlipRatio(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.slipRatio != null && corner < p.slipRatio.Length
+                ? (double?)p.slipRatio[corner]
+                : null;
     }
 }

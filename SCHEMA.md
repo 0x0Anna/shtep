@@ -192,18 +192,26 @@ it isn't told to skip it.
 | `Throttle_pct`    | 0–100  |                                          |
 | `Brake_pct`       | 0–100  |                                          |
 | `Clutch_pct`      | 0–100  |                                          |
+| `Handbrake_pct`   | 0–100 (unconfirmed) | pass-through of `StatusDataBase.Handbrake`; scale not yet confirmed live |
 | `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0). Sign confirmed live 2026-08-03: negative = left, positive = right |
 | `LapDistance_m`   | m      | distance into stage/lap                 |
 | `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it    |
 | `PosX_m`/`PosY_m`/`PosZ_m` | m | world-space, if sim exposes it   |
 | `SuspTravelFL_mm` etc. (FL/FR/RL/RR) | mm | if sim exposes it     |
-| `TyreTemp*` etc.  | °C     | per-corner, if sim exposes it            |
+| `TyreTempFL_C` etc. (FL/FR/RL/RR) | °C | if sim exposes it; treated as already-Celsius, same as AirTemp_C/TrackTemp_C |
 | `LatAccel_g`      | g      | ISO seat-frame lateral (sway)             |
 | `LongAccel_g`     | g      | ISO seat-frame longitudinal (surge)       |
 | `VertAccel_g`     | g      | ISO seat-frame vertical (heave)           |
 | `ABSActive`       | 0/1    |                                          |
+| `TCActive`        | 0/1    | traction control active                  |
 | `AirTemp_C`       | °C     |                                          |
 | `TrackTemp_C`     | °C     |                                          |
+| `OrientationYaw_raw`/`Pitch_raw`/`Roll_raw` | unconfirmed (rad vs deg) | car attitude; rename to `_deg`/`_rad` once confirmed live |
+| `WheelLoadFL_N` etc. (FL/FR/RL/RR) | N (unconfirmed) | AssettoCorsaRally only, per RawPhysicsAccessor.cs |
+| `WheelAngularSpeedFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
+| `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
+| `SlipAngleFL_raw` etc. | unconfirmed (rad vs deg) | AssettoCorsaRally only            |
+| `SlipRatioFL` etc. | ratio  | dimensionless, AssettoCorsaRally only     |
 | `FuelLevel_pct`   | 0–100  |                                          |
 | `LapNumber`       | —      | circuit only, absent in rally files      |
 
