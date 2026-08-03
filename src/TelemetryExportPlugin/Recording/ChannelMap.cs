@@ -29,10 +29,9 @@ namespace TelemetryExportPlugin.Recording
     ///      renamed 2026-08-02 after a live capture proved the field is NOT degrees:
     ///      values clip in a flat plateau at exactly -1.0/1.0, the signature of a
     ///      normalized full-lock ratio) - magnitude/scale confirmed correct this way,
-    ///      but the SIGN (does +1.0 mean left or right?) is still unconfirmed - the
-    ///      live full-lock test that would settle it wasn't recorded precisely enough
-    ///      to tell which direction produced which sign. Don't assert one without
-    ///      another live test that notes the direction at the time.
+    ///      and sign confirmed live 2026-08-03 via a directed left-then-right
+    ///      full-lock test: negative = left, positive = right (see
+    ///      RawPhysicsAccessor.cs's SteerRatio comment for the confirming capture).
     ///
     /// `Throttle`/`Brake`/`Clutch` are passed through as-is (already 0-100) - confirmed
     /// live against FH6 (2026-07-27): values like Throttle_pct=10000 in the diagnostic

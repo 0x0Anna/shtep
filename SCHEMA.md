@@ -192,7 +192,7 @@ it isn't told to skip it.
 | `Throttle_pct`    | 0–100  |                                          |
 | `Brake_pct`       | 0–100  |                                          |
 | `Clutch_pct`      | 0–100  |                                          |
-| `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0); **sign convention unconfirmed** - don't assume + = either direction until a live full-lock test notes the actual direction at the time |
+| `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0). Sign confirmed live 2026-08-03: negative = left, positive = right |
 | `LapDistance_m`   | m      | distance into stage/lap                 |
 | `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it    |
 | `PosX_m`/`PosY_m`/`PosZ_m` | m | world-space, if sim exposes it   |

@@ -49,10 +49,11 @@ namespace TelemetryExportPlugin.Recording
         // flat plateau at exactly -1.0/1.0 (41 rows at exactly -1.0, 23 at exactly
         // 1.0 in one session) - this is a normalized ratio of full lock, NOT
         // degrees, despite the field being named "SteerAngle" on the raw struct.
-        // Magnitude/scale is settled; SIGN (does +1.0 mean left or right) is still
-        // unconfirmed - the live full-lock test done so far didn't note which
-        // direction was held at which timestamp. Don't assume a sign without
-        // another live test that does.
+        // Sign confirmed live 2026-08-03: a directed test (wheel turned left
+        // first, full lock, twice) recorded SteerRatio = -1.0 for every left
+        // excursion and +1.0 for every right excursion
+        // (AssettoCorsaRally_Greece_New_Loutraki_20260803_171002.tsv, t=8.1-31.6s,
+        // stationary). Convention is settled: negative = left, positive = right.
         public static double? SteerRatio(StatusDataBase d, string gameName) =>
             TryGetPhysics(d, gameName, out var p) ? (double?)p.SteerAngle : null;
 
