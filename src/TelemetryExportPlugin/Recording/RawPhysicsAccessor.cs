@@ -104,5 +104,37 @@ namespace TelemetryExportPlugin.Recording
             TryGetPhysics(d, gameName, out var p) && p.slipRatio != null && corner < p.slipRatio.Length
                 ? (double?)p.slipRatio[corner]
                 : null;
+
+        // Same per-corner convention. No generic StatusDataBase equivalent (unlike
+        // BrakeTemperature*, which is already generic and preferred there) - this is
+        // the actual hydraulic pressure at the caliper, distinct from the pedal
+        // Brake_pct input. Unit unconfirmed (bar vs PSI vs kPa).
+        public static double? BrakePressureRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.brakePressure != null && corner < p.brakePressure.Length
+                ? (double?)p.brakePressure[corner]
+                : null;
+
+        // Same per-corner convention. No generic equivalent. Unit unconfirmed (the
+        // raw field name says radians, but per feedback_simhub_research_method this
+        // repo doesn't trust field names alone anymore after the SteerAngle/SteerRatio
+        // lesson - named _raw rather than _rad until a live test confirms it).
+        public static double? CamberRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.CamberRad != null && corner < p.CamberRad.Length
+                ? (double?)p.CamberRad[corner]
+                : null;
+
+        // Same per-corner convention. No generic equivalent. Unit/range unconfirmed
+        // (likely 0-1 damage fraction per Kunos's docs, not verified here).
+        public static double? SuspensionDamageRaw(StatusDataBase d, string gameName, int corner) =>
+            TryGetPhysics(d, gameName, out var p) && p.suspensionDamage != null && corner < p.suspensionDamage.Length
+                ? (double?)p.suspensionDamage[corner]
+                : null;
+
+        // Not per-corner - a single scalar count (0-4) of wheels currently off the
+        // track surface. No generic StatusDataBase equivalent; useful groundwork for
+        // the still-unwired RallyBoundary off-track/cut detection (see project memory
+        // on rally stage detection). Unverified live so far.
+        public static double? TyresOutCount(StatusDataBase d, string gameName) =>
+            TryGetPhysics(d, gameName, out var p) ? (double?)p.NumberOfTyresOut : null;
     }
 }

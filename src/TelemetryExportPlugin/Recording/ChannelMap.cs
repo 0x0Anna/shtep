@@ -94,6 +94,46 @@ namespace TelemetryExportPlugin.Recording
                 ("OrientationYaw_raw", (d, sim) => TryGet(() => (double?)d.OrientationYaw)),
                 ("OrientationPitch_raw", (d, sim) => TryGet(() => (double?)d.OrientationPitch)),
                 ("OrientationRoll_raw", (d, sim) => TryGet(() => (double?)d.OrientationRoll)),
+                // Actual rotation rates (Nullable<double> on StatusDataBase, same shape as
+                // AccelerationSway/Surge/Heave above - no cast needed). Complements the
+                // absolute Orientation*_raw channels; unit unconfirmed (deg/s vs rad/s).
+                ("YawRate_raw", (d, sim) => TryGet(() => d.YawChangeVelocity)),
+                ("PitchRate_raw", (d, sim) => TryGet(() => d.PitchChangeVelocity)),
+                ("RollRate_raw", (d, sim) => TryGet(() => d.RollChangeVelocity)),
+                // Per-corner tyre/brake health, all generic StatusDataBase Doubles
+                // (confirmed by reflection). Preferred over any raw-struct equivalent
+                // where one exists - e.g. TyrePressureFL_raw below duplicates the same
+                // physical quantity as WheelPressureFL_raw further down (from the raw ACR
+                // Physics struct), kept side by side deliberately until a live capture
+                // shows which is more trustworthy/less sim-gated; don't assume they agree.
+                // Units unconfirmed for all four groups (TyrePressureUnit/OilPressureUnit
+                // exist as separate string properties but aren't consulted here, same
+                // stance as AirTemp_C/TrackTemp_C above).
+                ("TyrePressureFL_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureFrontLeft)),
+                ("TyrePressureFR_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureFrontRight)),
+                ("TyrePressureRL_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureRearLeft)),
+                ("TyrePressureRR_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureRearRight)),
+                ("TyreWearFL_raw", (d, sim) => TryGet(() => (double?)d.TyreWearFrontLeft)),
+                ("TyreWearFR_raw", (d, sim) => TryGet(() => (double?)d.TyreWearFrontRight)),
+                ("TyreWearRL_raw", (d, sim) => TryGet(() => (double?)d.TyreWearRearLeft)),
+                ("TyreWearRR_raw", (d, sim) => TryGet(() => (double?)d.TyreWearRearRight)),
+                ("TyreDirtFL_raw", (d, sim) => TryGet(() => (double?)d.TyreDirtFrontLeft)),
+                ("TyreDirtFR_raw", (d, sim) => TryGet(() => (double?)d.TyreDirtFrontRight)),
+                ("TyreDirtRL_raw", (d, sim) => TryGet(() => (double?)d.TyreDirtRearLeft)),
+                ("TyreDirtRR_raw", (d, sim) => TryGet(() => (double?)d.TyreDirtRearRight)),
+                ("BrakeTempFL_C", (d, sim) => TryGet(() => (double?)d.BrakeTemperatureFrontLeft)),
+                ("BrakeTempFR_C", (d, sim) => TryGet(() => (double?)d.BrakeTemperatureFrontRight)),
+                ("BrakeTempRL_C", (d, sim) => TryGet(() => (double?)d.BrakeTemperatureRearLeft)),
+                ("BrakeTempRR_C", (d, sim) => TryGet(() => (double?)d.BrakeTemperatureRearRight)),
+                // Engine/drivetrain health, all generic. Units unconfirmed except
+                // PitLimiterOn (a plain Int32 flag, same shape as ABSActive/TCActive).
+                ("EngineTorque_raw", (d, sim) => TryGet(() => (double?)d.EngineTorque)),
+                ("OilPressure_raw", (d, sim) => TryGet(() => (double?)d.OilPressure)),
+                ("OilTemp_C", (d, sim) => TryGet(() => (double?)d.OilTemperature)),
+                ("WaterTemp_C", (d, sim) => TryGet(() => (double?)d.WaterTemperature)),
+                ("TurboBar_raw", (d, sim) => TryGet(() => (double?)d.TurboBar)),
+                ("BrakeBias_raw", (d, sim) => TryGet(() => (double?)d.BrakeBias)),
+                ("PitLimiterOn", (d, sim) => TryGet(() => (double?)d.PitLimiterOn)),
                 ("LapDistancePct", (d, sim) => TryGet(() => (double?)d.TrackPositionPercent)),
                 ("SteerRatio", (d, sim) => RawPhysicsAccessor.SteerRatio(d, sim)),
                 ("SuspTravelFL_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 0)),
@@ -120,6 +160,19 @@ namespace TelemetryExportPlugin.Recording
                 ("SlipRatioFR", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 1)),
                 ("SlipRatioRL", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 2)),
                 ("SlipRatioRR", (d, sim) => RawPhysicsAccessor.SlipRatio(d, sim, 3)),
+                ("BrakePressureFL_raw", (d, sim) => RawPhysicsAccessor.BrakePressureRaw(d, sim, 0)),
+                ("BrakePressureFR_raw", (d, sim) => RawPhysicsAccessor.BrakePressureRaw(d, sim, 1)),
+                ("BrakePressureRL_raw", (d, sim) => RawPhysicsAccessor.BrakePressureRaw(d, sim, 2)),
+                ("BrakePressureRR_raw", (d, sim) => RawPhysicsAccessor.BrakePressureRaw(d, sim, 3)),
+                ("CamberFL_raw", (d, sim) => RawPhysicsAccessor.CamberRaw(d, sim, 0)),
+                ("CamberFR_raw", (d, sim) => RawPhysicsAccessor.CamberRaw(d, sim, 1)),
+                ("CamberRL_raw", (d, sim) => RawPhysicsAccessor.CamberRaw(d, sim, 2)),
+                ("CamberRR_raw", (d, sim) => RawPhysicsAccessor.CamberRaw(d, sim, 3)),
+                ("SuspDamageFL_raw", (d, sim) => RawPhysicsAccessor.SuspensionDamageRaw(d, sim, 0)),
+                ("SuspDamageFR_raw", (d, sim) => RawPhysicsAccessor.SuspensionDamageRaw(d, sim, 1)),
+                ("SuspDamageRL_raw", (d, sim) => RawPhysicsAccessor.SuspensionDamageRaw(d, sim, 2)),
+                ("SuspDamageRR_raw", (d, sim) => RawPhysicsAccessor.SuspensionDamageRaw(d, sim, 3)),
+                ("TyresOutCount", (d, sim) => RawPhysicsAccessor.TyresOutCount(d, sim)),
             };
 
         private static double? ParseGear(string gear)

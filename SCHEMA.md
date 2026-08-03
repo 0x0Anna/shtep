@@ -207,11 +207,27 @@ it isn't told to skip it.
 | `AirTemp_C`       | °C     |                                          |
 | `TrackTemp_C`     | °C     |                                          |
 | `OrientationYaw_raw`/`Pitch_raw`/`Roll_raw` | unconfirmed (rad vs deg) | car attitude; rename to `_deg`/`_rad` once confirmed live |
+| `YawRate_raw`/`PitchRate_raw`/`RollRate_raw` | unconfirmed | rotation rates, `StatusDataBase.*ChangeVelocity` |
 | `WheelLoadFL_N` etc. (FL/FR/RL/RR) | N (unconfirmed) | AssettoCorsaRally only, per RawPhysicsAccessor.cs |
 | `WheelAngularSpeedFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
-| `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
+| `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only; near-duplicate of `TyrePressureFL_raw` below (raw-struct vs generic source), kept both until a live test shows which to trust |
 | `SlipAngleFL_raw` etc. | unconfirmed (rad vs deg) | AssettoCorsaRally only            |
 | `SlipRatioFL` etc. | ratio  | dimensionless, AssettoCorsaRally only     |
+| `TyrePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyrePressure*` |
+| `TyreWearFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreWear*`      |
+| `TyreDirtFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreDirt*`; off-line dirt buildup |
+| `BrakeTempFL_C` etc. (FL/FR/RL/RR) | °C | generic; treated as already-Celsius, same as AirTemp_C  |
+| `EngineTorque_raw` | unconfirmed | generic `StatusDataBase.EngineTorque`   |
+| `OilPressure_raw` | unconfirmed | generic `StatusDataBase.OilPressure`    |
+| `OilTemp_C`       | °C     | generic; treated as already-Celsius      |
+| `WaterTemp_C`     | °C     | generic; treated as already-Celsius      |
+| `TurboBar_raw`    | unconfirmed | despite the field name, don't assume bar without a live test (same lesson as SteerAngle) |
+| `BrakeBias_raw`   | unconfirmed | generic `StatusDataBase.BrakeBias`      |
+| `PitLimiterOn`    | 0/1    | generic `StatusDataBase.PitLimiterOn`    |
+| `BrakePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; caliper pressure, distinct from `Brake_pct` pedal input |
+| `CamberFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only            |
+| `SuspDamageFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only            |
+| `TyresOutCount`   | 0–4    | AssettoCorsaRally only; wheels currently off track surface |
 | `FuelLevel_pct`   | 0–100  |                                          |
 | `LapNumber`       | —      | circuit only, absent in rally files      |
 
