@@ -19,6 +19,10 @@
       <HintPath>$(SimHubInstallPath)GameReaderCommon.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="ACSharedMemory">
+      <HintPath>$(SimHubInstallPath)ACSharedMemory.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(SimHubInstallPath)log4net.dll</HintPath>
@@ -56,6 +60,7 @@
     <Compile Include="Recording\RecordingSidecar.cs" />
     <Compile Include="Recording\SampleTimer.cs" />
     <Compile Include="Recording\ChannelMap.cs" />
+    <Compile Include="Recording\RawPhysicsAccessor.cs" />
     <Compile Include="Recording\NumberFormat.cs" />
     <Compile Include="Recording\CrashRecovery.cs" />
     <Compile Include="Recording\DiscontinuityDetector.cs" />

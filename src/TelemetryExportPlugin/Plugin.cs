@@ -29,9 +29,19 @@ namespace TelemetryExportPlugin
 
         private static readonly Regex NonSafeChars = new Regex("[^A-Za-z0-9_-]");
 
+        // StatusDataBase.ReplayMode is a plain System.String property (confirmed by
+        // reflecting the installed GameReaderCommon.dll) that tracks SimHub's own
+        // record toggle every tick - live logs only ever showed exactly these two
+        // values. Unlike the DataCorePlugin.LoggingLastMessage approach originally
+        // tried here, this is a persistent per-tick property, not a transient log
+        // line that gets overwritten by the next unrelated message - no edge-trigger
+        // latch needed, just compare current vs previous tick. Confirmed live
+        // 2026-08-02 against SimHub's own record toggle during a real ACR session.
+        private const string SimHubReplayModeRecording = "Record";
+
         // Reuses ChannelMap's own (try/catch-guarded) LapNumber accessor rather
         // than duplicating the "not every sim exposes this" handling here.
-        private static readonly Func<StatusDataBase, double?> GetLapNumber =
+        private static readonly Func<StatusDataBase, string, double?> GetLapNumber =
             ChannelMap.Definitions.First(def => def.Header == "LapNumber").GetValue;
 
         public PluginSettings Settings;
@@ -57,6 +67,7 @@ namespace TelemetryExportPlugin
         private double? _openDiscontinuityStartTimeS;
         private List<DiscontinuityEntry> _discontinuities;
         private List<RewindEntry> _rewinds;
+        private bool _simHubRecordingActive;
 
         public void Init(PluginManager pluginManager)
         {
@@ -64,6 +75,13 @@ namespace TelemetryExportPlugin
 
             Settings = this.ReadCommonSettings<PluginSettings>("GeneralSettings", () => new PluginSettings());
             _pluginVersion = GetType().Assembly.GetName().Version.ToString();
+
+            // Defensive, not trusting SimHub's ReadCommonSettings to honor
+            // [JsonProperty(ObjectCreationHandling.Replace)] on EnabledChannels - it
+            // doesn't, in practice (see PluginSettings.cs's comment on that property).
+            // This runs every Init() regardless, so it also self-heals a settings file
+            // already corrupted by a prior version of this plugin.
+            Settings.EnabledChannels = Settings.EnabledChannels.Distinct().ToList();
 
             ValidateConfiguredPaths();
             CrashRecovery.RecoverAll(Settings.TempDir, Settings.OutputDir, Settings, _pluginVersion, msg => SimHub.Logging.Current.Error(msg));
@@ -117,7 +135,24 @@ namespace TelemetryExportPlugin
 
         public void DataUpdate(PluginManager pluginManager, ref GameData data)
         {
-            if (data.NewData == null) return;
+            if (data.NewData == null)
+            {
+                // All of CircuitBoundary/RallyBoundary/EvaluateSimHubRecordingTrigger
+                // only ever run below this guard, so none of them can react to
+                // anything once the game disconnects - confirmed live: SimHub keeps
+                // calling DataUpdate for tens of seconds after "Game disconnected"
+                // (other plugins/subsystems stay active), but data.NewData stays null
+                // the whole time, so a session left open at disconnect would otherwise
+                // never close until SimHub itself shuts down and Plugin.End() runs.
+                // Treat disconnect as an implicit end for whichever trigger mode is
+                // active - there's no more telemetry to record regardless.
+                if (_session != null && _session.IsOpen)
+                {
+                    SimHub.Logging.Current.Info("TelemetryExportPlugin: game disconnected mid-session, ending recording");
+                    EndSession();
+                }
+                return;
+            }
 
             _currentSim = data.GameName;
             _sampleTimer.SetPaused(data.GamePaused);
@@ -126,7 +161,7 @@ namespace TelemetryExportPlugin
             foreach (var (header, getValue) in ChannelMap.Definitions)
             {
                 if (!Settings.EnabledChannels.Contains(header)) continue;
-                var value = getValue(d);
+                var value = getValue(d, _currentSim);
                 if (value.HasValue)
                 {
                     _sampleTimer.UpdateChannel(header, value.Value);
@@ -139,7 +174,7 @@ namespace TelemetryExportPlugin
             // detection - PosX/Y/Z aren't available generically (see ChannelMap.cs).
             double position = d.TrackPositionMeters;
 
-            double? lapNumber = GetLapNumber(d);
+            double? lapNumber = GetLapNumber(d, _currentSim);
             bool lapJustChanged = lapNumber.HasValue && _lastLapNumber.HasValue && lapNumber.Value != _lastLapNumber.Value;
             _lastLapNumber = lapNumber;
 
@@ -148,7 +183,11 @@ namespace TelemetryExportPlugin
                 EvaluateDiscontinuityAndRewind(position, lapJustChanged);
             }
 
-            if (RallySimIds.Contains(_currentSim ?? string.Empty))
+            if (Settings.RecordingTrigger == RecordingTriggerMode.SimHubRecording)
+            {
+                EvaluateSimHubRecordingTrigger(d);
+            }
+            else if (RallySimIds.Contains(_currentSim ?? string.Empty))
             {
                 // TODO: no confirmed stage-start/stage-end signal yet for any rally
                 // adapter - needs a live rally sim session to identify (see
@@ -159,6 +198,26 @@ namespace TelemetryExportPlugin
             {
                 bool rawInPitLane = d.IsInPitLane != 0;
                 _circuitBoundary.Feed(rawInPitLane, DateTime.UtcNow, d.TrackName, d.CarModel, d.PlayerName);
+            }
+        }
+
+        // See RecordingTriggerMode's doc comment and SimHubReplayModeRecording's
+        // comment above - starts/ends sessions off SimHub's own record toggle
+        // (d.ReplayMode) instead of CircuitBoundary/RallyBoundary's pit-lane
+        // heuristic.
+        private void EvaluateSimHubRecordingTrigger(StatusDataBase d)
+        {
+            bool recording = d.ReplayMode == SimHubReplayModeRecording;
+
+            if (!_simHubRecordingActive && recording)
+            {
+                _simHubRecordingActive = true;
+                StartSession("stint", d.TrackName, d.CarModel, d.PlayerName);
+            }
+            else if (_simHubRecordingActive && !recording)
+            {
+                _simHubRecordingActive = false;
+                EndSession();
             }
         }
 
@@ -303,6 +362,12 @@ namespace TelemetryExportPlugin
         {
             if (_session == null || !_session.IsOpen) return;
 
+            // Centralized here (not just EvaluateSimHubRecordingTrigger's own path) so
+            // every way a session can end - pit-lane, disconnect, plugin shutdown -
+            // leaves the latch consistent with "no session open" for whenever the game
+            // next reconnects, regardless of which trigger mode originally opened it.
+            _simHubRecordingActive = false;
+
             if (_openDiscontinuityStartTimeS.HasValue)
             {
                 double timeS = _rewindIndex.Count / (double)Settings.SampleRateHz;
@@ -379,7 +444,7 @@ namespace TelemetryExportPlugin
             if ((DateTime.UtcNow - _lastDiagLogUtc).TotalSeconds < 5) return;
 
             _lastDiagLogUtc = DateTime.UtcNow;
-            var fields = string.Join(", ", ChannelMap.Definitions.Select(def => $"{def.Header}={FormatDiag(def.GetValue(d))}"));
+            var fields = string.Join(", ", ChannelMap.Definitions.Select(def => $"{def.Header}={FormatDiag(def.GetValue(d, _currentSim))}"));
             SimHub.Logging.Current.Info(
                 $"TelemetryExportPlugin: diag sim={_currentSim} track={d.TrackName} car={d.CarModel} " +
                 $"gearRaw={d.Gear} isInPitLane={d.IsInPitLane} paused={data.GamePaused} " +

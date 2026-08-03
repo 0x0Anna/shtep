@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace TelemetryExportPlugin.Config
 {
@@ -16,6 +17,20 @@ namespace TelemetryExportPlugin.Config
     }
 
     /// <summary>
+    /// Automatic: current behavior, sessions are opened/closed purely from
+    /// CircuitBoundary/RallyBoundary's own pit-lane/stage heuristics.
+    /// SimHubRecording: sessions instead follow SimHub's own record toggle
+    /// (Plugin.cs's LoggingLastMessage edge-trigger latch - see its comments;
+    /// this is a fragile string-matched signal, no confirmed boolean property
+    /// exists in the SDK for "is SimHub currently recording").
+    /// </summary>
+    public enum RecordingTriggerMode
+    {
+        Automatic,
+        SimHubRecording
+    }
+
+    /// <summary>
     /// Persisted plugin configuration. Serialized via SimHub's common settings
     /// JSON storage (see Plugin.Init/End) - keep this a plain POCO.
     /// </summary>
@@ -30,6 +45,8 @@ namespace TelemetryExportPlugin.Config
         public bool PurgeIncompleteOnStartup { get; set; } = false;
 
         public int PitLaneDebounceMs { get; set; } = 1500;
+
+        public RecordingTriggerMode RecordingTrigger { get; set; } = RecordingTriggerMode.Automatic;
 
         public DiscontinuityDetectionMode DiscontinuityDetection { get; set; } = DiscontinuityDetectionMode.Both;
 
@@ -65,14 +82,31 @@ namespace TelemetryExportPlugin.Config
 
         /// <summary>
         /// Fixed list for v1, per PLUGIN_IMPLEMENTATION_PLAN.md - becomes a proper
-        /// checklist UI later once channel availability per-sim is known.
+        /// checklist UI later once channel availability per-sim is known. There's no
+        /// settings-UI channel picker yet, so this hardcoded default is the only way
+        /// a channel actually gets recorded.
         /// "Paused"/"Discontinuity" are not listed here - they're written to every
         /// row unconditionally regardless of this list (SCHEMA.md: always present).
         /// Limited to channels ChannelMap.cs actually confirmed against the
-        /// installed GameReaderCommon.dll; see that file's header comment for the
-        /// SCHEMA.md channels (SteerAngle_deg, PosX/Y/Z, SuspTravel*) that don't
-        /// exist on the generic StatusDataBase and were deliberately left out.
+        /// installed GameReaderCommon.dll/ACSharedMemory.dll; see ChannelMap.cs's
+        /// header comment and RawPhysicsAccessor.cs for what's still missing
+        /// (PosX/Y/Z) and what's sim-gated (SteerRatio, SuspTravel*_mm -
+        /// AssettoCorsaRally only; other sims just always report null for these,
+        /// same as any other unsupported channel).
+        ///
+        /// [JsonProperty(ObjectCreationHandling = Replace)] documents the intent
+        /// (stop plain Json.NET's default Auto behavior from appending deserialized
+        /// items onto this non-null default list) and is verified correct against
+        /// bare Newtonsoft.Json.JsonConvert.PopulateObject in isolation - but SimHub's
+        /// actual ReadCommonSettings doesn't go through that path unchanged: this list
+        /// kept growing on live restarts even with the attribute applied and deployed
+        /// (confirmed via SimHub.txt's plugin-init timestamps - 97 entries became 117,
+        /// exactly +20, the hardcoded default's own length, after one more restart).
+        /// Whatever SimHub does internally for List{T} properties isn't something this
+        /// repo can fix - see Plugin.Init()'s Settings.EnabledChannels.Distinct() call
+        /// for the actual enforced fix, which doesn't depend on trusting that path.
         /// </summary>
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public List<string> EnabledChannels { get; set; } = new List<string>
         {
             "Speed_kmh",
@@ -83,6 +117,18 @@ namespace TelemetryExportPlugin.Config
             "Clutch_pct",
             "LapDistance_m",
             "FuelLevel_pct",
+            "LatAccel_g",
+            "LongAccel_g",
+            "VertAccel_g",
+            "ABSActive",
+            "AirTemp_C",
+            "TrackTemp_C",
+            "LapDistancePct",
+            "SteerRatio",
+            "SuspTravelFL_mm",
+            "SuspTravelFR_mm",
+            "SuspTravelRL_mm",
+            "SuspTravelRR_mm",
         };
     }
 }

@@ -14,13 +14,24 @@ namespace TelemetryExportPlugin.Recording
     /// the plan/schema docs didn't anticipate:
     ///
     ///   1. `Gear` is a string ("R"/"N"/"1".."N"), not a numeric field - parsed below.
-    ///   2. `PosX_m`/`PosY_m`/`PosZ_m`, `SteerAngle_deg`, and per-corner
-    ///      `SuspTravel*_mm` from SCHEMA.md's channel table do NOT exist on the
-    ///      generic StatusDataBase at all. Those live (if anywhere) on sim-specific
-    ///      extended data classes that individual SimHub game readers expose, which
-    ///      requires a per-sim cast this plugin doesn't do yet - deliberately left
-    ///      out of this v1 map rather than faked. Add them only after confirming a
-    ///      concrete accessor per sim (see PLUGIN_IMPLEMENTATION_PLAN.md step 9).
+    ///   2. `PosX_m`/`PosY_m`/`PosZ_m` from SCHEMA.md's channel table are still NOT
+    ///      public properties on the generic StatusDataBase and aren't wired up.
+    ///      `SteerAngle_deg` and per-corner `SuspTravel*_mm` WERE in the same boat
+    ///      until 2026-08-02: reachable via `StatusDataBase.GetRawDataObject()` cast
+    ///      to the sim's raw physics struct (confirmed by reflecting
+    ///      ACSharedMemory.dll: `ACSharedMemory.ACR.MMFModels.Physics` - and the
+    ///      AC/ACC-family structs alongside it - carry SteerAngle, SuspensionTravel,
+    ///      RideHeight, WheelSlip, WheelLoad, WheelsPressure, WheelAngularSpeed).
+    ///      GameReaderCommon's public property surface is a lowest-common-denominator
+    ///      projection, NOT the source of truth for whether a channel exists on a
+    ///      given sim - see RawPhysicsAccessor.cs for the per-sim cast, currently
+    ///      AssettoCorsaRally only. `SteerRatio` (originally named `SteerAngle_deg` -
+    ///      renamed 2026-08-02 after a live capture proved the field is NOT degrees:
+    ///      values clip in a flat plateau at exactly -1.0/1.0, the signature of a
+    ///      normalized full-lock ratio) - magnitude/scale confirmed correct this way,
+    ///      and sign confirmed live 2026-08-03 via a directed left-then-right
+    ///      full-lock test: negative = left, positive = right (see
+    ///      RawPhysicsAccessor.cs's SteerRatio comment for the confirming capture).
     ///
     /// `Throttle`/`Brake`/`Clutch` are passed through as-is (already 0-100) - confirmed
     /// live against FH6 (2026-07-27): values like Throttle_pct=10000 in the diagnostic
@@ -34,19 +45,33 @@ namespace TelemetryExportPlugin.Recording
         /// Ordered so file column order is stable for a given EnabledChannels list.
         /// Value is null when the sim doesn't currently expose this channel -
         /// per SCHEMA.md, a null result means "omit the column", not "write a sentinel".
+        /// Second delegate parameter is `data.GameName` - only the RawPhysicsAccessor-
+        /// backed entries below use it; the rest ignore it.
         /// </summary>
-        public static readonly IReadOnlyList<(string Header, Func<StatusDataBase, double?> GetValue)> Definitions =
-            new List<(string, Func<StatusDataBase, double?>)>
+        public static readonly IReadOnlyList<(string Header, Func<StatusDataBase, string, double?> GetValue)> Definitions =
+            new List<(string, Func<StatusDataBase, string, double?>)>
             {
-                ("Speed_kmh", d => TryGet(() => (double?)d.SpeedKmh)),
-                ("RPM", d => TryGet(() => (double?)d.Rpms)),
-                ("Gear", d => TryGet(() => ParseGear(d.Gear))),
-                ("Throttle_pct", d => TryGet(() => (double?)d.Throttle)),
-                ("Brake_pct", d => TryGet(() => (double?)d.Brake)),
-                ("Clutch_pct", d => TryGet(() => (double?)d.Clutch)),
-                ("LapDistance_m", d => TryGet(() => (double?)d.TrackPositionMeters)),
-                ("FuelLevel_pct", d => TryGet(() => (double?)d.FuelPercent)),
-                ("LapNumber", d => TryGet(() => (double?)d.CurrentLap)),
+                ("Speed_kmh", (d, sim) => TryGet(() => (double?)d.SpeedKmh)),
+                ("RPM", (d, sim) => TryGet(() => (double?)d.Rpms)),
+                ("Gear", (d, sim) => TryGet(() => ParseGear(d.Gear))),
+                ("Throttle_pct", (d, sim) => TryGet(() => (double?)d.Throttle)),
+                ("Brake_pct", (d, sim) => TryGet(() => (double?)d.Brake)),
+                ("Clutch_pct", (d, sim) => TryGet(() => (double?)d.Clutch)),
+                ("LapDistance_m", (d, sim) => TryGet(() => (double?)d.TrackPositionMeters)),
+                ("FuelLevel_pct", (d, sim) => TryGet(() => (double?)d.FuelPercent)),
+                ("LapNumber", (d, sim) => TryGet(() => (double?)d.CurrentLap)),
+                ("LatAccel_g", (d, sim) => TryGet(() => d.AccelerationSway)),
+                ("LongAccel_g", (d, sim) => TryGet(() => d.AccelerationSurge)),
+                ("VertAccel_g", (d, sim) => TryGet(() => d.AccelerationHeave)),
+                ("ABSActive", (d, sim) => TryGet(() => (double?)d.ABSActive)),
+                ("AirTemp_C", (d, sim) => TryGet(() => (double?)d.AirTemperature)),
+                ("TrackTemp_C", (d, sim) => TryGet(() => (double?)d.RoadTemperature)),
+                ("LapDistancePct", (d, sim) => TryGet(() => (double?)d.TrackPositionPercent)),
+                ("SteerRatio", (d, sim) => RawPhysicsAccessor.SteerRatio(d, sim)),
+                ("SuspTravelFL_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 0)),
+                ("SuspTravelFR_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 1)),
+                ("SuspTravelRL_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 2)),
+                ("SuspTravelRR_mm", (d, sim) => RawPhysicsAccessor.SuspTravelMm(d, sim, 3)),
             };
 
         private static double? ParseGear(string gear)

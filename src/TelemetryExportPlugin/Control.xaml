@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:styles="clr-namespace:SimHub.Plugins.Styles;assembly=SimHub.Plugins"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="500">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -20,8 +21,11 @@
             <TextBlock Text="Sample rate (Hz)" Margin="0,8,0,2"/>
             <TextBox x:Name="SampleRateBox" TextChanged="SampleRateBox_TextChanged"/>
 
-            <CheckBox x:Name="PurgeCheckBox" Content="Purge incomplete recordings on startup (instead of salvaging)"
+            <styles:SHToggleCheckbox x:Name="PurgeCheckBox" Content="Purge incomplete recordings on startup (instead of salvaging)"
                       Margin="0,12,0,0" Checked="PurgeCheckBox_Changed" Unchecked="PurgeCheckBox_Changed"/>
+
+            <TextBlock Text="Recording trigger" Margin="0,12,0,2"/>
+            <ComboBox x:Name="RecordingTriggerCombo" SelectionChanged="RecordingTriggerCombo_SelectionChanged"/>
 
             <TextBlock Text="Pit-lane debounce (ms, circuit only)" Margin="0,12,0,2"/>
             <TextBox x:Name="PitDebounceBox" TextChanged="PitDebounceBox_TextChanged"/>
@@ -35,11 +39,14 @@
             <TextBlock Text="Rewind handling" Margin="0,12,0,2"/>
             <ComboBox x:Name="RewindHandlingCombo" SelectionChanged="RewindHandlingCombo_SelectionChanged"/>
 
-            <CheckBox x:Name="ExportMotecLdCheckBox" Content="Also export a MoTeC (.ld) file after each recording"
+            <styles:SHToggleCheckbox x:Name="ExportMotecLdCheckBox" Content="Also export a MoTeC (.ld) file after each recording"
                       Margin="0,16,0,0" Checked="ExportMotecLdCheckBox_Changed" Unchecked="ExportMotecLdCheckBox_Changed"/>
 
             <TextBlock Text="MoTeC (.ld) output directory (blank = same as output directory)" Margin="0,8,0,2"/>
             <TextBox x:Name="MotecOutputDirBox" TextChanged="MotecOutputDirBox_TextChanged"/>
+
+            <styles:SHToggleCheckbox x:Name="VerboseDiagnosticLoggingCheckBox" Content="Verbose diagnostic logging"
+                      Margin="0,16,0,0" Checked="VerboseDiagnosticLoggingCheckBox_Changed" Unchecked="VerboseDiagnosticLoggingCheckBox_Changed"/>
         </StackPanel>
     </ScrollViewer>
 </UserControl>
