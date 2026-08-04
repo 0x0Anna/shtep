@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 using TelemetryExportPlugin.Recording;
 
@@ -90,6 +92,36 @@ namespace TelemetryExportPlugin.Tests
             timer.Tick(); // should resume at row 1 -> t = 0.01
 
             Assert.Equal(0.01, times[3]);
+        }
+
+        [Fact]
+        public async Task Tick_CalledConcurrently_NeverInvokesRowReadyReentrantly()
+        {
+            // Regression test for a real corruption bug found 2026-08-03: System.Timers.Timer
+            // does not guarantee non-overlapping Elapsed callbacks, so two Tick() calls could
+            // previously race into RowReady (and downstream into RecordingSession.WriteRow's
+            // unsynchronized file write) at the same time, producing rows with byte-interleaved
+            // content from different Time_s values spliced into one line. See SampleTimer.cs's
+            // _tickLock comment for the full account and the confirming real recording.
+            var timer = new SampleTimer(100);
+            var reentered = false;
+            var inHandler = 0;
+
+            timer.RowReady += (t, values) =>
+            {
+                if (Interlocked.Increment(ref inHandler) > 1) reentered = true;
+                Thread.Sleep(5); // widen the race window a slow WriteRow would occupy
+                Interlocked.Decrement(ref inHandler);
+            };
+
+            var tasks = new Task[20];
+            for (int i = 0; i < tasks.Length; i++)
+            {
+                tasks[i] = Task.Run(() => timer.Tick());
+            }
+            await Task.WhenAll(tasks);
+
+            Assert.False(reentered, "RowReady was invoked reentrantly by overlapping Tick() calls.");
         }
     }
 }
