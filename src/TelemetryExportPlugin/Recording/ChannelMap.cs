@@ -58,11 +58,16 @@ namespace TelemetryExportPlugin.Recording
                 ("Brake_pct", (d, sim) => TryGet(() => (double?)d.Brake)),
                 ("Clutch_pct", (d, sim) => TryGet(() => (double?)d.Clutch)),
                 // GameReaderCommon.StatusDataBase.Handbrake exists generically (confirmed
-                // by reflecting the installed GameReaderCommon.dll) but is unwired until
-                // now. Scale (0-100 vs 0-1) is UNCONFIRMED - Throttle/Brake/Clutch turned
-                // out to already be 0-100 on FH6 despite an initial *100 assumption (see
-                // header comment above), so don't assume Handbrake matches without a live
-                // capture that actually pulls the handbrake.
+                // by reflecting the installed GameReaderCommon.dll).
+                //
+                // CONFIRMED DEAD for ACR, 2026-08-03: flat 0.000 in a session where the
+                // handbrake was definitely engaged (ACR rally stages always start with
+                // it fully on) - not "never exercised", genuinely never populated by
+                // SimHub's ACR adapter. Same "left wired, not removed" reasoning as
+                // SuspDamage/TyresOutCount/TyreWear*/TyreDirt* - ACR is still early
+                // access, could start reporting after a future update. See
+                // RawPhysicsAccessor.cs's SuspensionDamageRaw comment for the possible
+                // future UDP-stream investigation path.
                 ("Handbrake_pct", (d, sim) => TryGet(() => (double?)d.Handbrake)),
                 ("LapDistance_m", (d, sim) => TryGet(() => (double?)d.TrackPositionMeters)),
                 ("FuelLevel_pct", (d, sim) => TryGet(() => (double?)d.FuelPercent)),

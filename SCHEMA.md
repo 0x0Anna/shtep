@@ -192,7 +192,7 @@ it isn't told to skip it.
 | `Throttle_pct`    | 0–100  |                                          |
 | `Brake_pct`       | 0–100  |                                          |
 | `Clutch_pct`      | 0–100  |                                          |
-| `Handbrake_pct`   | 0–100 (unconfirmed) | pass-through of `StatusDataBase.Handbrake`; scale not yet confirmed live |
+| `Handbrake_pct`   | 0–100 (unconfirmed) | pass-through of `StatusDataBase.Handbrake`. **Confirmed dead 2026-08-03** - flat 0.000 in a session where the handbrake was definitely engaged (ACR stage starts always begin with it fully on). Same early-access reasoning as the other confirmed-dead channels below |
 | `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0). Sign confirmed live 2026-08-03: negative = left, positive = right |
 | `LapDistance_m`   | m      | distance into stage/lap                 |
 | `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it    |
