@@ -130,18 +130,27 @@ namespace TelemetryExportPlugin.Recording
                 ("PitchRate_raw", (d, sim) => TryGet(() => d.PitchChangeVelocity)),
                 ("RollRate_raw", (d, sim) => TryGet(() => d.RollChangeVelocity)),
                 // Per-corner tyre/brake health, all generic StatusDataBase Doubles
-                // (confirmed by reflection). Preferred over any raw-struct equivalent
-                // where one exists - e.g. TyrePressureFL_raw below duplicates the same
-                // physical quantity as WheelPressureFL_raw further down (from the raw ACR
-                // Physics struct), kept side by side deliberately until a live capture
-                // shows which is more trustworthy/less sim-gated; don't assume they agree.
-                // Units unconfirmed for all four groups (TyrePressureUnit/OilPressureUnit
-                // exist as separate string properties but aren't consulted here, same
-                // stance as AirTemp_C/TrackTemp_C above).
+                // (confirmed by reflection). TyrePressureFL_raw below is CONFIRMED
+                // identical to WheelPressureFL_raw further down (from the raw ACR
+                // Physics struct) - byte-for-byte equal across a full live session,
+                // 2026-08-03 - same underlying source read two ways, safe to drop one
+                // eventually. TyreWear*/TyreDirt* below are CONFIRMED DEAD (see their
+                // own comment). BrakeTemp* is confirmed live/working (SCHEMA.md).
+                // Units still unconfirmed for TyrePressure/BrakeTemp's scale
+                // (TyrePressureUnit/OilPressureUnit exist as separate string properties
+                // but aren't consulted here, same stance as AirTemp_C/TrackTemp_C above).
                 ("TyrePressureFL_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureFrontLeft)),
                 ("TyrePressureFR_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureFrontRight)),
                 ("TyrePressureRL_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureRearLeft)),
                 ("TyrePressureRR_raw", (d, sim) => TryGet(() => (double?)d.TyrePressureRearRight)),
+                // TyreWear*/TyreDirt*: CONFIRMED DEAD for ACR, 2026-08-03 - flat 0.000
+                // across three separate sessions, including a 163s aggressive drive with
+                // real accumulated damage and a session where ABSActive/TCActive (same
+                // recording pipeline) showed genuine live values, so this isn't "just
+                // never exercised". Left wired since ACR is early access and its
+                // telemetry surface isn't finalized - see SCHEMA.md and
+                // RawPhysicsAccessor.cs's SuspensionDamageRaw comment for the same
+                // reasoning and a possible future UDP-stream investigation path.
                 ("TyreWearFL_raw", (d, sim) => TryGet(() => (double?)d.TyreWearFrontLeft)),
                 ("TyreWearFR_raw", (d, sim) => TryGet(() => (double?)d.TyreWearFrontRight)),
                 ("TyreWearRL_raw", (d, sim) => TryGet(() => (double?)d.TyreWearRearLeft)),

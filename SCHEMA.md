@@ -213,12 +213,12 @@ it isn't told to skip it.
 | `YawRate_raw`/`PitchRate_raw`/`RollRate_raw` | unconfirmed | rotation rates, `StatusDataBase.*ChangeVelocity` |
 | `WheelLoadFL_N` etc. (FL/FR/RL/RR) | N (unconfirmed) | AssettoCorsaRally only, per RawPhysicsAccessor.cs |
 | `WheelAngularSpeedFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
-| `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only; near-duplicate of `TyrePressureFL_raw` below (raw-struct vs generic source), kept both until a live test shows which to trust |
+| `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only; **confirmed byte-for-byte identical to `TyrePressureFL_raw` below across a full live session, 2026-08-03** (raw-struct vs generic source reading the same underlying value) - kept both for now, safe to drop one later |
 | `SlipAngleFL_raw` etc. | unconfirmed (rad vs deg) | AssettoCorsaRally only            |
 | `SlipRatioFL` etc. | ratio  | dimensionless, AssettoCorsaRally only     |
 | `TyrePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyrePressure*` |
-| `TyreWearFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreWear*`      |
-| `TyreDirtFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreDirt*`; off-line dirt buildup |
+| `TyreWearFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreWear*`. **Confirmed dead 2026-08-03** - flat 0.000 across three separate sessions, including a 163s aggressive drive with real accumulated damage and a session where ABSActive/TCActive (same recording pipeline) showed genuine live values, so this isn't "just not exercised yet". Left wired, same early-access reasoning as SuspDamage/TyresOutCount |
+| `TyreDirtFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreDirt*`; off-line dirt buildup. **Confirmed dead 2026-08-03**, same evidence as TyreWear* above |
 | `BrakeTempFL_C` etc. (FL/FR/RL/RR) | °C | generic; treated as already-Celsius, same as AirTemp_C  |
 | `EngineTorque_raw` | unconfirmed | generic `StatusDataBase.EngineTorque`   |
 | `OilPressure_raw` | unconfirmed | generic `StatusDataBase.OilPressure`    |
