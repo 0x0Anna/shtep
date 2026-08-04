@@ -192,23 +192,89 @@ it isn't told to skip it.
 | `Throttle_pct`    | 0–100  |                                          |
 | `Brake_pct`       | 0–100  |                                          |
 | `Clutch_pct`      | 0–100  |                                          |
+| `Handbrake_pct`   | 0–100 (unconfirmed) | pass-through of `StatusDataBase.Handbrake`. **Confirmed dead 2026-08-03** - flat 0.000 in a session where the handbrake was definitely engaged (ACR stage starts always begin with it fully on). Same early-access reasoning as the other confirmed-dead channels below |
 | `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0). Sign confirmed live 2026-08-03: negative = left, positive = right |
 | `LapDistance_m`   | m      | distance into stage/lap                 |
 | `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it    |
-| `PosX_m`/`PosY_m`/`PosZ_m` | m | world-space, if sim exposes it   |
+| `PosX_m`/`PosY_m`/`PosZ_m` | m | world-space; aspirational v1 name, not wired - see `CarPosX_raw` etc. below for the provisional replacement |
+| `CarPosX_raw`/`Y_raw`/`Z_raw` | unconfirmed | generic `StatusDataBase.CarCoordinates[0..2]` - possible answer to the PosX/Y/Z gap above, but array length/axis order/frame NOT confirmed live yet; index past the array's real length returns null rather than throwing |
+| `CarRelPosX_raw`/`Y_raw`/`Z_raw` | unconfirmed | generic `StatusDataBase.RelativeCarCoordinates[0..2]`, same caveats as CarPos* above - relative to an unconfirmed reference point |
 | `SuspTravelFL_mm` etc. (FL/FR/RL/RR) | mm | if sim exposes it     |
-| `TyreTemp*` etc.  | °C     | per-corner, if sim exposes it            |
+| `TyreTempFL_C` etc. (FL/FR/RL/RR) | °C | if sim exposes it; treated as already-Celsius, same as AirTemp_C/TrackTemp_C |
+| `TyreTempFL_Inner_C`/`Middle_C`/`Outer_C` etc. (FL/FR/RL/RR) | °C | temperature spread across the tread, distinct from the single averaged TyreTempFL_C above |
 | `LatAccel_g`      | g      | ISO seat-frame lateral (sway)             |
 | `LongAccel_g`     | g      | ISO seat-frame longitudinal (surge)       |
 | `VertAccel_g`     | g      | ISO seat-frame vertical (heave)           |
 | `ABSActive`       | 0/1    |                                          |
+| `TCActive`        | 0/1    | traction control active                  |
 | `AirTemp_C`       | °C     |                                          |
 | `TrackTemp_C`     | °C     |                                          |
+| `OrientationYaw_raw`/`Pitch_raw`/`Roll_raw` | unconfirmed (rad vs deg) | car attitude; rename to `_deg`/`_rad` once confirmed live |
+| `YawRate_raw`/`PitchRate_raw`/`RollRate_raw` | unconfirmed | rotation rates, `StatusDataBase.*ChangeVelocity` |
+| `WheelLoadFL_N` etc. (FL/FR/RL/RR) | N (unconfirmed) | AssettoCorsaRally only, per RawPhysicsAccessor.cs |
+| `WheelAngularSpeedFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
+| `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only; **confirmed byte-for-byte identical to `TyrePressureFL_raw` below across a full live session, 2026-08-03** (raw-struct vs generic source reading the same underlying value) - kept both for now, safe to drop one later |
+| `SlipAngleFL_raw` etc. | unconfirmed (rad vs deg) | AssettoCorsaRally only            |
+| `SlipRatioFL` etc. | ratio  | dimensionless, AssettoCorsaRally only     |
+| `TyrePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyrePressure*` |
+| `TyreWearFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreWear*`. **Confirmed dead 2026-08-03** - flat 0.000 across three separate sessions, including a 163s aggressive drive with real accumulated damage and a session where ABSActive/TCActive (same recording pipeline) showed genuine live values, so this isn't "just not exercised yet". Left wired, same early-access reasoning as SuspDamage/TyresOutCount |
+| `TyreDirtFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreDirt*`; off-line dirt buildup. **Confirmed dead 2026-08-03**, same evidence as TyreWear* above |
+| `BrakeTempFL_C` etc. (FL/FR/RL/RR) | °C | generic; treated as already-Celsius, same as AirTemp_C  |
+| `EngineTorque_raw` | unconfirmed | generic `StatusDataBase.EngineTorque`   |
+| `OilPressure_raw` | unconfirmed | generic `StatusDataBase.OilPressure`    |
+| `OilTemp_C`       | °C     | generic; treated as already-Celsius      |
+| `WaterTemp_C`     | °C     | generic; treated as already-Celsius      |
+| `TurboBar_raw`    | unconfirmed | despite the field name, don't assume bar without a live test (same lesson as SteerAngle) |
+| `BrakeBias_raw`   | unconfirmed | generic `StatusDataBase.BrakeBias`      |
+| `PitLimiterOn`    | 0/1    | generic `StatusDataBase.PitLimiterOn`    |
+| `BrakePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; caliper pressure, distinct from `Brake_pct` pedal input |
+| `CamberFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only            |
+| `SuspDamageFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; **confirmed dead 2026-08-03** - flat 0.000 through a real off-course excursion + terminal damage. Left wired since ACR is early access and its telemetry surface isn't finalized; may start reporting after a future update. See RawPhysicsAccessor.cs for a possible future path (ACR's own UDP stream, independent of GameReaderCommon) |
+| `TyresOutCount`   | 0–4    | AssettoCorsaRally only; wheels currently off track surface. **Confirmed dead 2026-08-03** - same session/event as SuspDamage above, same reasoning for leaving it wired |
+| `DiscLifeFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; brake disc wear, distinct from PadLife below |
+| `PadLifeFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; brake pad wear, distinct from DiscLife above |
+| `TyreForceFxFL_raw`/`TyreForceFyFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; tyre contact-patch force components, axis mapping (longitudinal vs lateral) NOT confirmed - correlate against a known maneuver before trusting |
+| `TyreMomentMzFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; tyre self-aligning moment |
+| `LocalVelocityX_raw`/`Y_raw`/`Z_raw` | unconfirmed | AssettoCorsaRally only; car-frame velocity vector, axis mapping NOT confirmed |
 | `FuelLevel_pct`   | 0–100  |                                          |
 | `LapNumber`       | —      | circuit only, absent in rally files      |
 
 Add new rows here (and only here) as channels are needed — don't rename
 existing headers once a converter depends on them; add a new column instead.
+
+### Deliberately excluded channels (documented, not silently unmapped)
+
+A full sweep of `GameReaderCommon.StatusDataBase` and the raw ACR `Physics`
+struct (2026-08-03) turned up many more fields than are worth recording.
+Listed here so a future pass doesn't re-investigate the same ground:
+
+- **Opponent/leaderboard data** (`Opponents*`, `SpotterCar*`, `Position`,
+  `DraftEstimate`, `HasMultipleClassOpponents`, etc.) — this plugin records
+  one car's own telemetry, not race context.
+- **Lap/session timing** (`CurrentLapTime`, `Sector*Time`, `BestLapTime`,
+  `DeltaToSessionBest`, `SessionTimeLeft`, `IsLapValid`, `Flag_*`, etc.) —
+  redundant given `RallyBoundary`'s stage/lap detection is a confirmed-flat
+  stub for ACR (see "Known limitation... rally stage detection" above); these
+  fields were checked as part of that investigation and stayed empty/0/false
+  through a full live stage.
+- **F1/hybrid-only mechanics** (`ERS*`, `DRS*`, `KERS*`, `P2P*`,
+  `PushToPassActive`) — not applicable to AssettoCorsaRally, ACR's raw struct
+  carries these fields but they're inert for a rally car.
+- **Force-feedback-only fields** (`*Vibrations`, `FinalFF`, `FeedbackData`) —
+  drive the wheel's FFB motor, not a measurement of car state.
+- **Static per-session constants** (`Ballast`, `CgHeight`, `MaxRPM`,
+  `MaxFuel`, `Redline`, `CarSettings_*`, tyre/brake compound selectors,
+  `currentMaxRpm`) — don't change per-row within a session; belong in the
+  sidecar's metadata if ever needed, not as a per-sample TSV column.
+- **Aggregate/derived duplicates of channels already recorded per-corner**
+  (`TyresWearAvg/Max/Min`, `TyresTemperatureAvg/Max/Min`,
+  `TyresDirtyLevelAvg/Max/Min`, `BrakesTemperatureAvg/Max/Min`,
+  `MaxSpeedKmh`, filtered/`Sanitized` variants of already-wired channels) —
+  computable from the per-corner data already recorded; adding both risks the
+  summary and the per-corner values silently disagreeing.
+- **String/metadata properties** (`CarClass`, `CarModel`, `TrackName`,
+  `*Unit` fields like `TyrePressureUnit`) — not numeric, belong in the
+  sidecar's `car`/`context` fields, not a TSV column.
 
 ### Rewind handling (Forza Horizon and similar rewind-capable games)
 
