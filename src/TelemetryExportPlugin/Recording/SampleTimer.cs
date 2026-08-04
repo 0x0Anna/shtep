@@ -18,6 +18,23 @@ namespace TelemetryExportPlugin.Recording
         private readonly Dictionary<string, double> _lastKnown = new Dictionary<string, double>();
         private readonly object _lock = new object();
 
+        // Guards the *entire* Tick() body, including the RowReady invocation below -
+        // separate from _lock (which only protects the fast state fields touched by
+        // UpdateChannel/SetPaused/SetDiscontinuity from SimHub's data thread).
+        // System.Timers.Timer does NOT guarantee non-overlapping Elapsed callbacks:
+        // if one Tick() runs longer than the tick interval (10ms at the default
+        // 100Hz - trivially exceeded by a GC pause or disk I/O stall), the next
+        // Elapsed fires concurrently on a second threadpool thread. Confirmed live
+        // 2026-08-03: a real recording
+        // (AssettoCorsaRally_Greece_Aghii_Theodori_20260803_204100.tsv) had 18
+        // corrupted rows with byte-interleaved content from three different Time_s
+        // values spliced into single lines - the signature of two Tick() calls both
+        // reaching RecordingSession.WriteRow's unsynchronized _stream.Write
+        // concurrently. RecordingSession.cs's own doc comment already says callers
+        // "must serialize access to a single instance" - this lock is what actually
+        // enforces that now, rather than relying on Tick() never overlapping.
+        private readonly object _tickLock = new object();
+
         private long _rowIndex;
         private bool _paused;
         private bool _lastWrittenPaused;
@@ -95,35 +112,43 @@ namespace TelemetryExportPlugin.Recording
         /// </summary>
         internal void Tick()
         {
-            Dictionary<string, double> snapshot;
-            bool paused;
-            bool discontinuity;
-            bool isTransition;
-
-            lock (_lock)
+            // Serializes the whole tick, including RowReady's invocation - see
+            // _tickLock's comment above for why this is load-bearing, not just
+            // defensive. A second overlapping Tick() blocks here until the first
+            // one (including its downstream WriteRow) finishes, instead of both
+            // reaching the file stream at once.
+            lock (_tickLock)
             {
-                paused = _paused;
-                discontinuity = _discontinuity;
-                isTransition = !_hasWrittenFirstRow || paused != _lastWrittenPaused;
+                Dictionary<string, double> snapshot;
+                bool paused;
+                bool discontinuity;
+                bool isTransition;
 
-                if (paused && !isTransition)
+                lock (_lock)
                 {
-                    // Cadence stopped for the duration of the pause; nothing to emit.
-                    return;
+                    paused = _paused;
+                    discontinuity = _discontinuity;
+                    isTransition = !_hasWrittenFirstRow || paused != _lastWrittenPaused;
+
+                    if (paused && !isTransition)
+                    {
+                        // Cadence stopped for the duration of the pause; nothing to emit.
+                        return;
+                    }
+
+                    snapshot = new Dictionary<string, double>(_lastKnown);
+                    _lastWrittenPaused = paused;
+                    _hasWrittenFirstRow = true;
                 }
 
-                snapshot = new Dictionary<string, double>(_lastKnown);
-                _lastWrittenPaused = paused;
-                _hasWrittenFirstRow = true;
+                snapshot["Paused"] = paused ? 1 : 0;
+                snapshot["Discontinuity"] = discontinuity ? 1 : 0;
+
+                double timeS = (double)_rowIndex / SampleRateHz;
+                _rowIndex++;
+
+                RowReady?.Invoke(timeS, snapshot);
             }
-
-            snapshot["Paused"] = paused ? 1 : 0;
-            snapshot["Discontinuity"] = discontinuity ? 1 : 0;
-
-            double timeS = (double)_rowIndex / SampleRateHz;
-            _rowIndex++;
-
-            RowReady?.Invoke(timeS, snapshot);
         }
 
         public void Dispose()
