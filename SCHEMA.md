@@ -229,8 +229,8 @@ it isn't told to skip it.
 | `PitLimiterOn`    | 0/1    | generic `StatusDataBase.PitLimiterOn`    |
 | `BrakePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; caliper pressure, distinct from `Brake_pct` pedal input |
 | `CamberFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only            |
-| `SuspDamageFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only            |
-| `TyresOutCount`   | 0–4    | AssettoCorsaRally only; wheels currently off track surface |
+| `SuspDamageFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; **confirmed dead 2026-08-03** - flat 0.000 through a real off-course excursion + terminal damage. Left wired since ACR is early access and its telemetry surface isn't finalized; may start reporting after a future update. See RawPhysicsAccessor.cs for a possible future path (ACR's own UDP stream, independent of GameReaderCommon) |
+| `TyresOutCount`   | 0–4    | AssettoCorsaRally only; wheels currently off track surface. **Confirmed dead 2026-08-03** - same session/event as SuspDamage above, same reasoning for leaving it wired |
 | `DiscLifeFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; brake disc wear, distinct from PadLife below |
 | `PadLifeFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; brake pad wear, distinct from DiscLife above |
 | `TyreForceFxFL_raw`/`TyreForceFyFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; tyre contact-patch force components, axis mapping (longitudinal vs lateral) NOT confirmed - correlate against a known maneuver before trusting |

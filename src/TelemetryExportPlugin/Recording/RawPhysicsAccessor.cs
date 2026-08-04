@@ -125,6 +125,18 @@ namespace TelemetryExportPlugin.Recording
 
         // Same per-corner convention. No generic equivalent. Unit/range unconfirmed
         // (likely 0-1 damage fraction per Kunos's docs, not verified here).
+        //
+        // CONFIRMED DEAD for ACR, 2026-08-03: flat 0.000 across a 376s session that
+        // included a real off-course excursion and confirmed terminal damage
+        // (AssettoCorsaRally_Greece_Zeli_20260803_205542.tsv) - not just "never
+        // triggered", genuinely never populated by SimHub's ACR adapter. Left wired
+        // rather than removed: ACR is still early access and its telemetry surface
+        // isn't finalized, so this could start reporting real values after a future
+        // SimHub/ACR update. A possible future path if this matters enough to chase
+        // further: ACR may expose damage over its own UDP telemetry stream
+        // independent of GameReaderCommon's adapter - worth sniffing that stream
+        // directly in a future session rather than assuming SimHub's reflection
+        // surface is the ceiling.
         public static double? SuspensionDamageRaw(StatusDataBase d, string gameName, int corner) =>
             TryGetPhysics(d, gameName, out var p) && p.suspensionDamage != null && corner < p.suspensionDamage.Length
                 ? (double?)p.suspensionDamage[corner]
@@ -133,7 +145,12 @@ namespace TelemetryExportPlugin.Recording
         // Not per-corner - a single scalar count (0-4) of wheels currently off the
         // track surface. No generic StatusDataBase equivalent; useful groundwork for
         // the still-unwired RallyBoundary off-track/cut detection (see project memory
-        // on rally stage detection). Unverified live so far.
+        // on rally stage detection).
+        //
+        // CONFIRMED DEAD for ACR, 2026-08-03: same 376s session as SuspensionDamageRaw
+        // above, same off-course event, flat 0.000 throughout despite the car
+        // genuinely leaving the track surface. Same "left wired, not removed" reasoning
+        // and same future-UDP-stream idea applies - see that comment.
         public static double? TyresOutCount(StatusDataBase d, string gameName) =>
             TryGetPhysics(d, gameName, out var p) ? (double?)p.NumberOfTyresOut : null;
 
