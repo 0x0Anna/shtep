@@ -27,6 +27,18 @@ namespace TelemetryExportPlugin
             "RichardBurnsRally", "DirtRally2_0", "Ea Sports Wrc",
         };
 
+        // Sims confirmed to have a real player-facing rewind feature (see
+        // DiscontinuityDetector.Evaluate's rewindCapable doc comment for why this
+        // gates Backward-vs-Forward classification). "FH6" confirmed via this
+        // repo's own fixtures/live testing (fixtures/rewind/fh6_freeroam_*).
+        // Anna confirmed 2026-08-04 that GranTurismo7 has no such feature at all
+        // (only lap/session restart) - don't add it here. Default for any sim not
+        // listed is "not rewind capable" (the safer default), not "unconfirmed."
+        private static readonly HashSet<string> RewindCapableSimIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "FH6",
+        };
+
         private static readonly Regex NonSafeChars = new Regex("[^A-Za-z0-9_-]");
 
         // StatusDataBase.ReplayMode is a plain System.String property (confirmed by
@@ -228,7 +240,8 @@ namespace TelemetryExportPlugin
             // rather than duplicating a counter here.
             double timeS = _rewindIndex.Count / (double)Settings.SampleRateHz;
 
-            var kind = _discontinuityDetector.Evaluate(position, timeS, simReportsResetOrAssist: false, lapJustChanged: lapJustChanged);
+            bool rewindCapable = RewindCapableSimIds.Contains(_currentSim ?? string.Empty);
+            var kind = _discontinuityDetector.Evaluate(position, timeS, simReportsResetOrAssist: false, lapJustChanged: lapJustChanged, rewindCapable: rewindCapable);
 
             switch (kind)
             {
