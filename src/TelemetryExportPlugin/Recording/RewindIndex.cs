@@ -43,7 +43,15 @@ namespace TelemetryExportPlugin.Recording
             {
                 if (entry.Position <= targetPosition)
                 {
-                    if (!found || entry.Position > match.Position)
+                    // >= (not >) so that among ties - e.g. GranTurismo7's
+                    // TrackPositionMeters, which is flat for most of a lap and only
+                    // briefly touches ~0 near each lap boundary (confirmed live
+                    // 2026-08-04), so every lap in a session ties with row 0's own
+                    // position - the LATEST tied entry wins, not the first. With
+                    // strict >, a false rewind trigger anywhere in a long session
+                    // matched row 0 and truncated the entire file back to the start
+                    // instead of just the most recent lap.
+                    if (!found || entry.Position >= match.Position)
                     {
                         match = entry;
                         found = true;

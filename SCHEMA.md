@@ -192,41 +192,43 @@ it isn't told to skip it.
 | `Throttle_pct`    | 0–100  |                                          |
 | `Brake_pct`       | 0–100  |                                          |
 | `Clutch_pct`      | 0–100  |                                          |
-| `Handbrake_pct`   | 0–100 (unconfirmed) | pass-through of `StatusDataBase.Handbrake`. **Confirmed dead 2026-08-03** - flat 0.000 in a session where the handbrake was definitely engaged (ACR stage starts always begin with it fully on). Same early-access reasoning as the other confirmed-dead channels below |
+| `Handbrake_pct`   | 0–100 (unconfirmed) | pass-through of `StatusDataBase.Handbrake`. **Confirmed dead 2026-08-03** - flat 0.000 in a session where the handbrake was definitely engaged (ACR stage starts always begin with it fully on). Same early-access reasoning as the other confirmed-dead channels below. Also flat 0.000 in a 253s GranTurismo7 hotlap 2026-08-04, but handbrake wasn't deliberately exercised in that session - inconclusive for GT7, don't mark dead without a directed test |
 | `SteerRatio`      | −1..1  | normalized fraction of full lock, AssettoCorsaRally only. Confirmed live (not degrees - values clip flat at exactly ±1.0). Sign confirmed live 2026-08-03: negative = left, positive = right |
 | `LapDistance_m`   | m      | distance into stage/lap                 |
-| `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it    |
+| `LapDistancePct`  | 0–100  | alt. position axis, if sim exposes it. **GranTurismo7** 2026-08-04: flat -1.000 the entire hotlap - reads as a "not available" sentinel from `StatusDataBase`, not a real 0-100 value; treat as dead for this sim. `LapDistance_m` itself was also erratic in the same session (negative values, large discontinuous jumps like -5633→-4490→0) - worth a closer look before trusting it for GT7 either |
 | `PosX_m`/`PosY_m`/`PosZ_m` | m | world-space; aspirational v1 name, not wired - see `CarPosX_raw` etc. below for the provisional replacement |
-| `CarPosX_raw`/`Y_raw`/`Z_raw` | unconfirmed | generic `StatusDataBase.CarCoordinates[0..2]` - possible answer to the PosX/Y/Z gap above, but array length/axis order/frame NOT confirmed live yet; index past the array's real length returns null rather than throwing |
-| `CarRelPosX_raw`/`Y_raw`/`Z_raw` | unconfirmed | generic `StatusDataBase.RelativeCarCoordinates[0..2]`, same caveats as CarPos* above - relative to an unconfirmed reference point |
+| `CarPosX_raw`/`Y_raw`/`Z_raw` | unconfirmed | generic `StatusDataBase.CarCoordinates[0..2]` - possible answer to the PosX/Y/Z gap above, but array length/axis order/frame NOT confirmed live yet; index past the array's real length returns null rather than throwing. **Confirmed DEAD for AssettoCorsaRally** (100% NaN) but **confirmed ALIVE for GranTurismo7** 2026-08-04 - real varying values across a full 253s hotlap (roughly ±640 on X/Z, ±20 on Y), opposite result from ACR. Axis order/frame still unconfirmed - don't assume X/Y/Z mapping without a directed test (e.g. drive a known straight line) |
+| `CarRelPosX_raw`/`Y_raw`/`Z_raw` | unconfirmed | generic `StatusDataBase.RelativeCarCoordinates[0..2]`, same caveats as CarPos* above - relative to an unconfirmed reference point. **Confirmed DEAD for GranTurismo7** 2026-08-04 - always empty across a full hotlap, unlike CarPos* above which is alive for this sim; ACR status still NaN/dead per the CarPos* note |
 | `SuspTravelFL_mm` etc. (FL/FR/RL/RR) | mm | if sim exposes it     |
-| `TyreTempFL_C` etc. (FL/FR/RL/RR) | °C | if sim exposes it; treated as already-Celsius, same as AirTemp_C/TrackTemp_C |
-| `TyreTempFL_Inner_C`/`Middle_C`/`Outer_C` etc. (FL/FR/RL/RR) | °C | temperature spread across the tread, distinct from the single averaged TyreTempFL_C above |
-| `LatAccel_g`      | g      | ISO seat-frame lateral (sway)             |
-| `LongAccel_g`     | g      | ISO seat-frame longitudinal (surge)       |
-| `VertAccel_g`     | g      | ISO seat-frame vertical (heave)           |
-| `ABSActive`       | 0/1    |                                          |
-| `TCActive`        | 0/1    | traction control active                  |
-| `AirTemp_C`       | °C     |                                          |
-| `TrackTemp_C`     | °C     |                                          |
+| `TyreTempFL_C` etc. (FL/FR/RL/RR) | °C | if sim exposes it; treated as already-Celsius, same as AirTemp_C/TrackTemp_C. **Confirmed ALIVE for GranTurismo7** 2026-08-04 - real varying values 55.7-86.6°C across a hotlap, plausible tyre temps (contrast with ACR where this was a suspicious flat 90.000 placeholder) |
+| `TyreTempFL_Inner_C`/`Middle_C`/`Outer_C` etc. (FL/FR/RL/RR) | °C | temperature spread across the tread, distinct from the single averaged TyreTempFL_C above. **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 across a full hotlap despite the aggregate TyreTempFL_C (above) showing real values in the same session; ACR status unchanged (also dead, see "Deliberately excluded"/2026-08-03 notes) |
+| `LatAccel_g`      | g (**suspect for GranTurismo7**) | ISO seat-frame lateral (sway). **2026-08-04**: in a 253s GT7 hotlap this reached ±33, physically impossible as g (would mean 33x gravity in a road car) - don't trust magnitude or unit from GT7 until this is resolved, see LongAccel_g note below for the cross-check that applies to all three |
+| `LongAccel_g`     | g (**suspect for GranTurismo7**) | ISO seat-frame longitudinal (surge). **2026-08-04**: same GT7 session reached ±30. Cross-checked against the speed derivative (`d(Speed_kmh)/dt` converted to m/s²) over 1,585 non-cornering samples: strong linear correlation (r=-0.986) confirming the column *does* track real longitudinal acceleration, but the fitted scale (~0.63 g-column-units per true m/s²) matches neither a correct g conversion (expected ~0.102, i.e. 1/9.80665) nor any other obvious unit, and the sign is inverted vs. the derivative (braking gives a *positive* column value). Root cause not identified - possibly a per-sim inconsistency in SimHub's `GameReaderCommon.AccelerationSurge` for the GT7 reader specifically (same class of trap as the ACR `SteerAngle`/`TyrePressure` unit surprises already documented), possibly something else. **Don't use these three channels from GT7 captures for anything quantitative until this is root-caused** |
+| `VertAccel_g`     | g (**suspect for GranTurismo7**) | ISO seat-frame vertical (heave). **2026-08-04**: same GT7 session reached ±16, same caveat as LongAccel_g above (not independently cross-checked, but comes from the same field family and same suspicious magnitude pattern) |
+| `ABSActive`       | 0/1    | Confirmed toggling 0/1 in a live GranTurismo7 hotlap 2026-08-04, same as the earlier ACR confirmation |
+| `TCActive`        | 0/1    | traction control active. **Confirmed ALIVE for GranTurismo7** 2026-08-04 - real 0/1 toggling across a full 7-lap race, same as the earlier ACR confirmation (was inconclusive in an earlier GT7 hotlap where TC wasn't exercised) |
+| `AirTemp_C`       | °C     | **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 across a full hotlap |
+| `TrackTemp_C`     | °C     | **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000, same session as AirTemp_C above |
 | `OrientationYaw_raw`/`Pitch_raw`/`Roll_raw` | unconfirmed (rad vs deg) | car attitude; rename to `_deg`/`_rad` once confirmed live |
 | `YawRate_raw`/`PitchRate_raw`/`RollRate_raw` | unconfirmed | rotation rates, `StatusDataBase.*ChangeVelocity` |
+**Note on the AssettoCorsaRally-only channels below** (`WheelLoad*` through `LocalVelocity*`): confirmed empty in every row of a full GranTurismo7 hotlap 2026-08-04, as expected - `RawPhysicsAccessor`'s `SupportedGameNames` gate is doing its job, this is by design, not a bug for GT7.
+
 | `WheelLoadFL_N` etc. (FL/FR/RL/RR) | N (unconfirmed) | AssettoCorsaRally only, per RawPhysicsAccessor.cs |
 | `WheelAngularSpeedFL_raw` etc. | unconfirmed | AssettoCorsaRally only                   |
 | `WheelPressureFL_raw` etc. | unconfirmed | AssettoCorsaRally only; **confirmed byte-for-byte identical to `TyrePressureFL_raw` below across a full live session, 2026-08-03** (raw-struct vs generic source reading the same underlying value) - kept both for now, safe to drop one later |
 | `SlipAngleFL_raw` etc. | unconfirmed (rad vs deg) | AssettoCorsaRally only            |
 | `SlipRatioFL` etc. | ratio  | dimensionless, AssettoCorsaRally only     |
-| `TyrePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyrePressure*` |
-| `TyreWearFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreWear*`. **Confirmed dead 2026-08-03** - flat 0.000 across three separate sessions, including a 163s aggressive drive with real accumulated damage and a session where ABSActive/TCActive (same recording pipeline) showed genuine live values, so this isn't "just not exercised yet". Left wired, same early-access reasoning as SuspDamage/TyresOutCount |
-| `TyreDirtFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreDirt*`; off-line dirt buildup. **Confirmed dead 2026-08-03**, same evidence as TyreWear* above |
-| `BrakeTempFL_C` etc. (FL/FR/RL/RR) | °C | generic; treated as already-Celsius, same as AirTemp_C  |
-| `EngineTorque_raw` | unconfirmed | generic `StatusDataBase.EngineTorque`   |
-| `OilPressure_raw` | unconfirmed | generic `StatusDataBase.OilPressure`    |
-| `OilTemp_C`       | °C     | generic; treated as already-Celsius      |
-| `WaterTemp_C`     | °C     | generic; treated as already-Celsius      |
-| `TurboBar_raw`    | unconfirmed | despite the field name, don't assume bar without a live test (same lesson as SteerAngle) |
-| `BrakeBias_raw`   | unconfirmed | generic `StatusDataBase.BrakeBias`      |
-| `PitLimiterOn`    | 0/1    | generic `StatusDataBase.PitLimiterOn`    |
+| `TyrePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyrePressure*`. **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 across a full hotlap |
+| `TyreWearFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreWear*`. **Confirmed dead 2026-08-03** - flat 0.000 across three separate sessions, including a 163s aggressive drive with real accumulated damage and a session where ABSActive/TCActive (same recording pipeline) showed genuine live values, so this isn't "just not exercised yet". Left wired, same early-access reasoning as SuspDamage/TyresOutCount. **Also confirmed dead for GranTurismo7** 2026-08-04, same flat-0.000 pattern |
+| `TyreDirtFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | generic `StatusDataBase.TyreDirt*`; off-line dirt buildup. **Confirmed dead 2026-08-03**, same evidence as TyreWear* above. **Also confirmed dead for GranTurismo7** 2026-08-04 |
+| `BrakeTempFL_C` etc. (FL/FR/RL/RR) | °C | generic; treated as already-Celsius, same as AirTemp_C. **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 across a full hotlap, contrast with ACR where this was confirmed working (real per-corner values) |
+| `EngineTorque_raw` | unconfirmed | generic `StatusDataBase.EngineTorque`. **Confirmed DEAD for GranTurismo7** 2026-08-04 |
+| `OilPressure_raw` | unconfirmed | generic `StatusDataBase.OilPressure`. **Confirmed DEAD for GranTurismo7** 2026-08-04 |
+| `OilTemp_C`       | °C     | generic; treated as already-Celsius. **GranTurismo7** 2026-08-04: flat 110.000 the entire session - a suspicious constant like ACR's flat-90 TyreTemp placeholder, treat as dead/placeholder rather than a real reading |
+| `WaterTemp_C`     | °C     | generic; treated as already-Celsius. **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 |
+| `TurboBar_raw`    | unconfirmed | despite the field name, don't assume bar without a live test (same lesson as SteerAngle). **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 |
+| `BrakeBias_raw`   | unconfirmed | generic `StatusDataBase.BrakeBias`. **Confirmed DEAD for GranTurismo7** 2026-08-04 - flat 0.000 |
+| `PitLimiterOn`    | 0/1    | generic `StatusDataBase.PitLimiterOn`. Flat 0.000 in a GranTurismo7 hotlap 2026-08-04 - pit limiter wasn't exercised in that session, inconclusive |
 | `BrakePressureFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; caliper pressure, distinct from `Brake_pct` pedal input |
 | `CamberFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only            |
 | `SuspDamageFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; **confirmed dead 2026-08-03** - flat 0.000 through a real off-course excursion + terminal damage. Left wired since ACR is early access and its telemetry surface isn't finalized; may start reporting after a future update. See RawPhysicsAccessor.cs for a possible future path (ACR's own UDP stream, independent of GameReaderCommon) |
@@ -236,7 +238,7 @@ it isn't told to skip it.
 | `TyreForceFxFL_raw`/`TyreForceFyFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; tyre contact-patch force components, axis mapping (longitudinal vs lateral) NOT confirmed - correlate against a known maneuver before trusting |
 | `TyreMomentMzFL_raw` etc. (FL/FR/RL/RR) | unconfirmed | AssettoCorsaRally only; tyre self-aligning moment |
 | `LocalVelocityX_raw`/`Y_raw`/`Z_raw` | unconfirmed | AssettoCorsaRally only; car-frame velocity vector, axis mapping NOT confirmed |
-| `FuelLevel_pct`   | 0–100  |                                          |
+| `FuelLevel_pct`   | 0–100  | **Confirmed ALIVE for GranTurismo7** 2026-08-04 - real depletion 99.96%→52.44% across a full 7-lap race with a pit stop (was flat 100.000 in an earlier hotlap, inconclusive there since fuel use may not have been enabled for that session type) |
 | `LapNumber`       | —      | circuit only, absent in rally files      |
 
 Add new rows here (and only here) as channels are needed — don't rename
@@ -286,6 +288,20 @@ in one file, which nothing downstream (MoTeC lap analysis, `sde-app`) has a
 concept of resolving. Default behavior is therefore **truncation**, not
 flagging.
 
+**This only applies to sims with a real rewind feature.** Confirmed
+2026-08-04 (Anna): most sims, including GranTurismo7, have no such feature at
+all — only lap/session restart. A backward position jump there is never a
+"redo" the player is choosing to discard prior rows for, so truncating it is
+actively destructive, not just imprecise (this repo hit exactly that, twice —
+see `project_shtep_status.md`'s 2026-08-04 entries). `Plugin.cs` now gates
+`Backward` classification behind a `RewindCapableSimIds` allowlist
+(currently just `"FH6"`, confirmed via `fixtures/rewind/fh6_freeroam_*`);
+every other sim's heuristic-detected backward jump is classified `Forward`
+instead — flagged and kept, never truncated. **Default for an unlisted sim
+is "not rewind capable,"** not "unconfirmed" — don't add a sim to the
+allowlist without confirming it actually has a rewind feature a player can
+trigger mid-drive.
+
 - **`RewindHandling` config**: `"Truncate"` (default) | `"FlagOnly"` (keep
   everything and treat the boundary like a `Discontinuity` instead — useful
   if you ever want to review the pre-correction attempt, at the cost of the
@@ -305,7 +321,34 @@ flagging.
   exposes it, not `LapDistance`** — `LapDistance` resets at lap boundaries,
   which would confuse the match if a rewind spans a lap crossing. Fall back
   to `LapDistance` only for sims without position data; a known limitation,
-  not solved further in v1.
+  not solved further in v1. **`Plugin.cs` currently always uses the
+  `LapDistance` fallback (`TrackPositionMeters`), never `PosX/Y/Z`, even
+  though `CarPosX/Y/Z_raw` is now confirmed alive for GranTurismo7
+  (2026-08-04)** - switching to it for sims where it's populated would be the
+  real fix for the two issues below, not attempted yet (needs turning the
+  3-axis position into a single delta-distance for the heuristic, more than
+  a one-line change).
+  - **Confirmed 2026-08-04 against real GranTurismo7 races**: this
+    limitation isn't just theoretical. `TrackPositionMeters` for GT7 doesn't
+    behave like "distance into the lap" at all - it's flat for almost the
+    entire lap and only briefly (1-2 samples) touches a value near the
+    lap's start before jumping to a large negative constant that holds for
+    the rest of that lap. Two consequences, both hit in the same session:
+    1. The lap-boundary jump can land 1-2 samples **after** the sim's lap
+       counter increments, not on the same sample - a fixed single-sample
+       "just changed" guard misses it and misreads the jump as a rewind.
+       Fixed by widening `DiscontinuityDetector`'s post-lap-change grace
+       window to 5 samples (see its code comment).
+    2. Because the position is flat per lap and only touches ~0 briefly at
+       each boundary, **every** lap in a session ties at position≈0 with
+       the file's very first row. `RewindIndex.TryFindTruncationPoint`'s
+       tie-breaking used to keep the *first* matching entry, so any
+       remaining false trigger - anywhere in the session - truncated the
+       entire file back to the start instead of just the most recent lap.
+       Fixed by preferring the *latest* tied entry (see its code comment).
+       This is a general robustness fix (smaller blast radius on any future
+       false trigger, for any sim), independent of whether every false
+       trigger itself has been eliminated.
 - **`Time_s` needs no special handling** — it's a synthetic counter
   (`row_index / SampleRateHz`), not wall-clock time, so it simply continues
   from wherever it was at the truncation point once writing resumes. No need

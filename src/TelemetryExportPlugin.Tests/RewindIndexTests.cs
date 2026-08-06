@@ -53,6 +53,28 @@ namespace TelemetryExportPlugin.Tests
         }
 
         [Fact]
+        public void TryFindTruncationPoint_OnTiedPosition_PrefersLatestEntryOverEarliest()
+        {
+            // Regression for a real GranTurismo7 race capture (2026-08-04):
+            // TrackPositionMeters is flat for most of a lap and only briefly
+            // touches ~0 near each lap boundary, so a long session ties position
+            // 0 across many rows (once per lap), not just row 0. A false rewind
+            // trigger late in the session matched the FIRST tied row (position
+            // <= target, strict > for replacement) and truncated the entire file
+            // back to the start instead of the most recent lap boundary.
+            var index = new RewindIndex();
+            index.Add(position: 0, byteOffset: 0, rowIndex: 0, timeS: 0.0);
+            index.Add(position: -4049.861, byteOffset: 100, rowIndex: 10, timeS: 0.1);
+            index.Add(position: 0, byteOffset: 200, rowIndex: 20, timeS: 0.2);
+            index.Add(position: -5633.703, byteOffset: 300, rowIndex: 30, timeS: 0.3);
+            index.Add(position: 0, byteOffset: 400, rowIndex: 40, timeS: 0.4);
+
+            Assert.True(index.TryFindTruncationPoint(0, out var match));
+
+            Assert.Equal(40, match.RowIndex);
+        }
+
+        [Fact]
         public void WriteRowsThenBackwardJump_TruncatesAndResumesCleanly()
         {
             // Fixture matching PLUGIN_IMPLEMENTATION_PLAN.md's rewind test description:

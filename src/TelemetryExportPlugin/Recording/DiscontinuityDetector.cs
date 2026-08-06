@@ -26,9 +26,22 @@ namespace TelemetryExportPlugin.Recording
     /// </summary>
     public class DiscontinuityDetector
     {
+        // How many samples after a lap change to keep suppressing the heuristic.
+        // A single-sample skip (the old behavior) assumed the position field
+        // snaps to its new-lap value on the same tick the lap counter increments.
+        // Confirmed false live 2026-08-04 against a real GranTurismo7 session:
+        // TrackPositionMeters kept reporting the old lap's trailing value for two
+        // extra ticks after LapNumber flipped, then jumped ~5600m in a single
+        // 10ms sample - past the single-sample guard, so the heuristic caught it
+        // as a "backward rewind" and truncated most of a 16-minute race down to
+        // 123s across repeated false triggers (one per lap). 5 samples (50ms at
+        // the standard 100Hz rate) covers the observed 2-tick lag with margin.
+        private const int LapChangeGraceSamples = 5;
+
         private readonly PluginSettings _settings;
         private double? _lastPosition;
         private double? _lastTimeS;
+        private int _lapChangeGraceRemaining;
 
         public DiscontinuityDetector(PluginSettings settings)
         {
@@ -44,13 +57,30 @@ namespace TelemetryExportPlugin.Recording
         /// <param name="lapJustChanged">
         /// True on the sample where the sim's lap counter just ticked over.
         /// LapDistance resets to ~0 at every lap boundary (SCHEMA.md), which is
-        /// indistinguishable from a rewind by position delta alone - skip the
-        /// heuristic for this one sample rather than misdetecting every ordinary
-        /// lap completion as a backward rewind. `_lastPosition`/`_lastTimeS`
-        /// still advance below, so the very next sample compares against the new
-        /// lap's position and isn't affected.
+        /// indistinguishable from a rewind by position delta alone - starts (or
+        /// restarts) a <see cref="LapChangeGraceSamples"/>-sample grace window
+        /// during which the heuristic is skipped, rather than misdetecting every
+        /// ordinary lap completion as a backward rewind. `_lastPosition`/
+        /// `_lastTimeS` still advance below regardless, so once the grace window
+        /// ends the comparison is against wherever position actually settled.
         /// </param>
-        public DiscontinuityKind Evaluate(double position, double timeS, bool simReportsResetOrAssist, bool lapJustChanged = false)
+        /// <param name="rewindCapable">
+        /// True only for sims confirmed to have a real player-facing rewind
+        /// feature (SCHEMA.md's "Rewind handling" - Forza Horizon and similar).
+        /// Anna's observation 2026-08-04: most sims have no such feature at all -
+        /// GranTurismo7, for instance, can only restart a lap or session, never
+        /// rewind mid-drive. A large backward position jump there is either a
+        /// bad/noisy position signal or a genuine restart - never a "redo" the
+        /// player is choosing to discard the preceding rows for. Truncating in
+        /// that case is actively destructive (see the two rewind bugs this repo
+        /// hit chasing exactly that). Defaults false (safer for any
+        /// not-yet-confirmed sim): a heuristic-detected backward jump is
+        /// classified as <see cref="DiscontinuityKind.Forward"/> instead of
+        /// <see cref="DiscontinuityKind.Backward"/>, so it gets flagged and kept
+        /// rather than truncated. Only sims with a confirmed real rewind feature
+        /// should pass true.
+        /// </param>
+        public DiscontinuityKind Evaluate(double position, double timeS, bool simReportsResetOrAssist, bool lapJustChanged = false, bool rewindCapable = false)
         {
             DiscontinuityKind result = DiscontinuityKind.None;
 
@@ -59,12 +89,19 @@ namespace TelemetryExportPlugin.Recording
             bool useHeuristic = _settings.DiscontinuityDetection == DiscontinuityDetectionMode.Heuristic
                 || _settings.DiscontinuityDetection == DiscontinuityDetectionMode.Both;
 
+            if (lapJustChanged)
+            {
+                _lapChangeGraceRemaining = LapChangeGraceSamples;
+            }
+
             if (useSimEvent && simReportsResetOrAssist)
             {
                 result = DiscontinuityKind.Forward;
             }
 
-            if (useHeuristic && !lapJustChanged && _lastPosition.HasValue && _lastTimeS.HasValue)
+            bool inLapChangeGrace = _lapChangeGraceRemaining > 0;
+
+            if (useHeuristic && !inLapChangeGrace && _lastPosition.HasValue && _lastTimeS.HasValue)
             {
                 double dt = timeS - _lastTimeS.Value;
                 if (dt > 0)
@@ -74,9 +111,14 @@ namespace TelemetryExportPlugin.Recording
 
                     if (impliedSpeedKmh > _settings.HeuristicDiscontinuitySpeedKmh)
                     {
-                        result = delta < 0 ? DiscontinuityKind.Backward : DiscontinuityKind.Forward;
+                        result = (delta < 0 && rewindCapable) ? DiscontinuityKind.Backward : DiscontinuityKind.Forward;
                     }
                 }
+            }
+
+            if (inLapChangeGrace)
+            {
+                _lapChangeGraceRemaining--;
             }
 
             _lastPosition = position;
@@ -89,6 +131,7 @@ namespace TelemetryExportPlugin.Recording
         {
             _lastPosition = null;
             _lastTimeS = null;
+            _lapChangeGraceRemaining = 0;
         }
     }
 }
