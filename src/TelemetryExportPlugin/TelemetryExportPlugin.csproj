@@ -70,6 +70,8 @@
     <Compile Include="Export\MotecLdWriter.cs" />
     <Compile Include="Export\MotecLdxWriter.cs" />
     <Compile Include="Export\MotecExporter.cs" />
+    <Compile Include="Export\IbtWriter.cs" />
+    <Compile Include="Export\IbtExporter.cs" />
   </ItemGroup>
 
   <ItemGroup>

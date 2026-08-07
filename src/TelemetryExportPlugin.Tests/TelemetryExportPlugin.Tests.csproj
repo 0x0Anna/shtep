@@ -35,6 +35,8 @@
     <Compile Include="..\TelemetryExportPlugin\Export\MotecLdWriter.cs" Link="Sut\MotecLdWriter.cs" />
     <Compile Include="..\TelemetryExportPlugin\Export\MotecLdxWriter.cs" Link="Sut\MotecLdxWriter.cs" />
     <Compile Include="..\TelemetryExportPlugin\Export\MotecExporter.cs" Link="Sut\MotecExporter.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Export\IbtWriter.cs" Link="Sut\IbtWriter.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Export\IbtExporter.cs" Link="Sut\IbtExporter.cs" />
   </ItemGroup>
 
   <ItemGroup>

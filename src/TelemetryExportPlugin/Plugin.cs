@@ -421,6 +421,11 @@ namespace TelemetryExportPlugin
                 ExportMotecLdIfEnabled(_session.BaseName, sidecar);
             }
 
+            if (Settings.ExportIbt)
+            {
+                ExportIbtIfEnabled(_session.BaseName, sidecar);
+            }
+
             _session = null;
         }
 
@@ -443,6 +448,28 @@ namespace TelemetryExportPlugin
             catch (Exception ex)
             {
                 SimHub.Logging.Current.Error($"TelemetryExportPlugin: MoTeC export failed for {baseName}: {ex}");
+            }
+        }
+
+        // Same contract as ExportMotecLdIfEnabled: runs after the .tsv/.meta.json
+        // pair has landed in OutputDir, and a failure here is logged rather than
+        // propagated so it can never take down recording.
+        private void ExportIbtIfEnabled(string baseName, RecordingSidecar sidecar)
+        {
+            try
+            {
+                string tsvPath = Path.Combine(Settings.OutputDir, $"{baseName}.tsv");
+                string ibtOutputDir = string.IsNullOrWhiteSpace(Settings.IbtOutputDir)
+                    ? Settings.OutputDir
+                    : Settings.IbtOutputDir;
+
+                string ibtPath = IbtExporter.Export(tsvPath, sidecar, ibtOutputDir, baseName,
+                    Settings.IbtTickRateHz);
+                SimHub.Logging.Current.Info($"TelemetryExportPlugin: wrote iRacing log {ibtPath}");
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Error($"TelemetryExportPlugin: .ibt export failed for {baseName}: {ex}");
             }
         }
 

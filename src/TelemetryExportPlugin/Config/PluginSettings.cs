@@ -73,6 +73,35 @@ namespace TelemetryExportPlugin.Config
         public string MotecOutputDir { get; set; } = "";
 
         /// <summary>
+        /// Post-processing step: after a recording's .tsv/.meta.json pair lands in
+        /// OutputDir, also write an iRacing .ibt file from it, which Cosworth Pi
+        /// Toolbox imports natively (see Export/IbtExporter.cs and
+        /// PI_TOOLBOX_EXPORT.md). Off by default, independent of ExportMotecLd -
+        /// both can be enabled at once. Runs after Close(), not on the live write
+        /// path, so it never affects recording itself.
+        /// </summary>
+        public bool ExportIbt { get; set; } = false;
+
+        /// <summary>
+        /// Destination directory for generated .ibt files. Empty means "same as
+        /// OutputDir".
+        /// </summary>
+        public string IbtOutputDir { get; set; } = "";
+
+        /// <summary>
+        /// Sample rate of the generated .ibt. Defaults to 60 Hz - iRacing's own
+        /// rate, and the only one validated against Pi Toolbox - so a 100 Hz
+        /// recording is resampled down.
+        ///
+        /// Set this to SampleRateHz to keep full fidelity, at the cost of writing
+        /// a rate real iRacing files never use. Whatever the value, it must match
+        /// the actual sample spacing: consumers reconstruct time as
+        /// index * (1/tick_rate), so a mismatch stretches the session while every
+        /// individual value still round-trips correctly.
+        /// </summary>
+        public int IbtTickRateHz { get; set; } = 60;
+
+        /// <summary>
         /// Throttled raw-channel dump to SimHub's log (not the recorded TSV) for
         /// verifying ChannelMap accessors against a new sim's real telemetry
         /// without attaching a debugger. Off by default - only turn on while
