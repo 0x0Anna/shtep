@@ -65,6 +65,7 @@
     <Compile Include="Recording\CrashRecovery.cs" />
     <Compile Include="Recording\DiscontinuityDetector.cs" />
     <Compile Include="Recording\RewindIndex.cs" />
+    <Compile Include="Recording\DisconnectGuard.cs" />
     <Compile Include="Boundaries\RallyBoundary.cs" />
     <Compile Include="Boundaries\CircuitBoundary.cs" />
     <Compile Include="Export\MotecLdWriter.cs" />

@@ -29,6 +29,7 @@
     <Compile Include="..\TelemetryExportPlugin\Recording\CrashRecovery.cs" Link="Sut\CrashRecovery.cs" />
     <Compile Include="..\TelemetryExportPlugin\Recording\DiscontinuityDetector.cs" Link="Sut\DiscontinuityDetector.cs" />
     <Compile Include="..\TelemetryExportPlugin\Recording\RewindIndex.cs" Link="Sut\RewindIndex.cs" />
+    <Compile Include="..\TelemetryExportPlugin\Recording\DisconnectGuard.cs" Link="Sut\DisconnectGuard.cs" />
     <Compile Include="..\TelemetryExportPlugin\Boundaries\CircuitBoundary.cs" Link="Sut\CircuitBoundary.cs" />
     <Compile Include="..\TelemetryExportPlugin\Config\PluginSettings.cs" Link="Sut\PluginSettings.cs" />
     <Compile Include="..\TelemetryExportPlugin\Config\PathValidation.cs" Link="Sut\PathValidation.cs" />

@@ -69,6 +69,7 @@ namespace TelemetryExportPlugin
         private RewindIndex _rewindIndex;
         private RallyBoundary _rallyBoundary;
         private CircuitBoundary _circuitBoundary;
+        private DisconnectGuard _disconnectGuard;
         private RecordingSession _session;
         private string _pluginVersion;
 
@@ -100,6 +101,7 @@ namespace TelemetryExportPlugin
 
             _discontinuityDetector = new DiscontinuityDetector(Settings);
             _rewindIndex = new RewindIndex();
+            _disconnectGuard = new DisconnectGuard(Settings.DisconnectGraceMs);
 
             _rallyBoundary = new RallyBoundary();
             _rallyBoundary.StageStarted += (context, car, driver) =>
@@ -156,9 +158,12 @@ namespace TelemetryExportPlugin
                 // (other plugins/subsystems stay active), but data.NewData stays null
                 // the whole time, so a session left open at disconnect would otherwise
                 // never close until SimHub itself shuts down and Plugin.End() runs.
-                // Treat disconnect as an implicit end for whichever trigger mode is
-                // active - there's no more telemetry to record regardless.
-                if (_session != null && _session.IsOpen)
+                // Debounced via DisconnectGuard rather than ending on the very first
+                // null tick - confirmed live 2026-08-07 that GT7's telemetry goes null
+                // for well under a second around an in-game pause, and the old
+                // immediate-end behavior fragmented one continuous drive into several
+                // files every time (see DisconnectGuard's doc comment).
+                if (_disconnectGuard.Feed(hasData: false, DateTime.UtcNow) && _session != null && _session.IsOpen)
                 {
                     SimHub.Logging.Current.Info("TelemetryExportPlugin: game disconnected mid-session, ending recording");
                     EndSession();
@@ -166,6 +171,7 @@ namespace TelemetryExportPlugin
                 return;
             }
 
+            _disconnectGuard.Feed(hasData: true, DateTime.UtcNow);
             _currentSim = data.GameName;
             _sampleTimer.SetPaused(data.GamePaused);
 

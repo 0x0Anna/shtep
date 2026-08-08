@@ -46,6 +46,12 @@ namespace TelemetryExportPlugin.Config
 
         public int PitLaneDebounceMs { get; set; } = 1500;
 
+        // How long data.NewData must stay null before Plugin.cs's DisconnectGuard
+        // treats it as a real disconnect and ends the session, rather than a
+        // momentary telemetry gap (e.g. GT7's UDP stream stalling for under a
+        // second during an in-game pause). See DisconnectGuard.cs.
+        public int DisconnectGraceMs { get; set; } = 3000;
+
         public RecordingTriggerMode RecordingTrigger { get; set; } = RecordingTriggerMode.Automatic;
 
         public DiscontinuityDetectionMode DiscontinuityDetection { get; set; } = DiscontinuityDetectionMode.Both;
