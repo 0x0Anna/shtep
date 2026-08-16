@@ -146,5 +146,22 @@ namespace TelemetryExportPlugin.Tests
             Assert.Null(json["discontinuities"]);
             Assert.Null(json["rewinds"]);
         }
+
+        [Fact]
+        public void Discard_DeletesPartialFile_WritesNothingToOutputDir()
+        {
+            var session = new RecordingSession(_tempDir, _outputDir, "fh6_stub_20260815_230307", new[] { "Speed_kmh" });
+            session.Open();
+            session.WriteRow(0.0, new Dictionary<string, double> { ["Speed_kmh"] = 1 });
+
+            var partialPath = session.PartialPath;
+            Assert.True(File.Exists(partialPath));
+
+            session.Discard();
+
+            Assert.False(File.Exists(partialPath));
+            Assert.False(session.IsOpen);
+            Assert.Empty(Directory.GetFiles(_outputDir));
+        }
     }
 }

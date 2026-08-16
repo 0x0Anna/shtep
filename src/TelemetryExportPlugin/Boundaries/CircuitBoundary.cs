@@ -32,6 +32,25 @@ namespace TelemetryExportPlugin.Boundaries
             _debounceMs = debounceMs;
         }
 
+        /// <summary>
+        /// Re-arms the boundary so the next Feed() re-baselines from scratch, as if
+        /// freshly constructed - same "first observed tick" path as the constructor.
+        /// Needed whenever a session ends through a route other than this boundary's
+        /// own StintEnded (e.g. a disconnect mid-stint via Plugin.cs's
+        /// DisconnectGuard): without this, _inStint stays true from the stint that
+        /// just got force-closed, so a reconnect reporting the same rawInPitLane
+        /// value as before reads as "no change" and Feed() silently never fires
+        /// StintStarted again - confirmed live 2026-08-14, FH6's UDP telemetry link
+        /// flaps constantly, and every reconnect after the first disconnect recorded
+        /// nothing until IsInPitLane happened to genuinely toggle.
+        /// </summary>
+        public void Reset()
+        {
+            _initialized = false;
+            _inStint = false;
+            _pendingState = null;
+        }
+
         /// <summary>Call once per tick with the sim's current raw pit-lane boolean.</summary>
         public void Feed(bool rawInPitLane, DateTime now, string context, string car, string driver)
         {

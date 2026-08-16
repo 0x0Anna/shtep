@@ -95,5 +95,32 @@ namespace TelemetryExportPlugin.Tests
 
             Assert.True(ended);
         }
+
+        [Fact]
+        public void Reset_AfterStintForceClosedWithoutPitLaneChange_StartsNewStintOnNextTick()
+        {
+            // Regression test: a session can be force-closed by something other than
+            // a pit-lane transition (Plugin.cs's DisconnectGuard, on a real
+            // disconnect). Without Reset(), _inStint stays true from the old stint,
+            // so a reconnect reporting the same rawInPitLane value as before reads as
+            // "no change" and Feed() never fires StintStarted again. Confirmed live
+            // 2026-08-14 against FH6, whose UDP telemetry link disconnects/reconnects
+            // frequently mid-drive.
+            var boundary = new CircuitBoundary(debounceMs: 1000);
+            int startedCount = 0;
+            boundary.StintStarted += (c, car, driver) => startedCount++;
+
+            var t0 = new DateTime(2026, 1, 1, 0, 0, 0);
+            boundary.Feed(rawInPitLane: false, now: t0, context: "Track", car: "Car", driver: "Driver");
+            Assert.Equal(1, startedCount);
+
+            // Simulate Plugin.cs's EndSession() force-closing the session on
+            // disconnect, then the game reconnecting still on track (rawInPitLane
+            // unchanged from before the disconnect).
+            boundary.Reset();
+            boundary.Feed(rawInPitLane: false, now: t0.AddSeconds(5), context: "Track", car: "Car", driver: "Driver");
+
+            Assert.Equal(2, startedCount);
+        }
     }
 }

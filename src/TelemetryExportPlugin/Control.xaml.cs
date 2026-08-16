@@ -25,6 +25,7 @@ namespace TelemetryExportPlugin
 
             PitDebounceBox.Text = _plugin.Settings.PitLaneDebounceMs.ToString(CultureInfo.InvariantCulture);
             DisconnectGraceBox.Text = _plugin.Settings.DisconnectGraceMs.ToString(CultureInfo.InvariantCulture);
+            MinSessionDurationBox.Text = _plugin.Settings.MinSessionDurationS.ToString(CultureInfo.InvariantCulture);
             HeuristicSpeedBox.Text = _plugin.Settings.HeuristicDiscontinuitySpeedKmh.ToString(CultureInfo.InvariantCulture);
 
             DiscontinuityModeCombo.ItemsSource = System.Enum.GetValues(typeof(DiscontinuityDetectionMode));
@@ -104,6 +105,15 @@ namespace TelemetryExportPlugin
             if (int.TryParse(DisconnectGraceBox.Text, out var ms) && ms >= 0)
             {
                 _plugin.Settings.DisconnectGraceMs = ms;
+            }
+        }
+
+        private void MinSessionDurationBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_loading) return;
+            if (double.TryParse(MinSessionDurationBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var s) && s >= 0)
+            {
+                _plugin.Settings.MinSessionDurationS = s;
             }
         }
 

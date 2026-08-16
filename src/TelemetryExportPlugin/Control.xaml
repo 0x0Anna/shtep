@@ -33,6 +33,9 @@
             <TextBlock Text="Disconnect grace period (ms, before ending a session on lost telemetry)" Margin="0,12,0,2"/>
             <TextBox x:Name="DisconnectGraceBox" TextChanged="DisconnectGraceBox_TextChanged"/>
 
+            <TextBlock Text="Minimum session duration (s, shorter recordings are discarded)" Margin="0,12,0,2"/>
+            <TextBox x:Name="MinSessionDurationBox" TextChanged="MinSessionDurationBox_TextChanged"/>
+
             <TextBlock Text="Heuristic discontinuity speed threshold (km/h)" Margin="0,12,0,2"/>
             <TextBox x:Name="HeuristicSpeedBox" TextChanged="HeuristicSpeedBox_TextChanged"/>
 

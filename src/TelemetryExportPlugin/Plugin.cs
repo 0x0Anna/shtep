@@ -158,6 +158,15 @@ namespace TelemetryExportPlugin
                 // (other plugins/subsystems stay active), but data.NewData stays null
                 // the whole time, so a session left open at disconnect would otherwise
                 // never close until SimHub itself shuts down and Plugin.End() runs.
+                // Stop SampleTimer's cadence for the duration of the gap, same as a
+                // real in-game pause - otherwise it keeps ticking on held last-known
+                // values the whole time data.NewData is null, and with
+                // DisconnectGraceMs raised well past a single tick (see
+                // PluginSettings.cs), an unconfirmed disconnect would otherwise
+                // inject a run of frozen stale-value rows into the file instead of
+                // just a clean pause-style gap.
+                _sampleTimer.SetPaused(true);
+
                 // Debounced via DisconnectGuard rather than ending on the very first
                 // null tick - confirmed live 2026-08-07 that GT7's telemetry goes null
                 // for well under a second around an in-game pause, and the old
@@ -386,6 +395,31 @@ namespace TelemetryExportPlugin
             // leaves the latch consistent with "no session open" for whenever the game
             // next reconnects, regardless of which trigger mode originally opened it.
             _simHubRecordingActive = false;
+
+            // Same reasoning for CircuitBoundary's own internal latch - without this,
+            // a session force-closed by something other than a pit-lane transition
+            // (disconnect being the common case) leaves _inStint stuck true, and the
+            // next Feed() with an unchanged rawInPitLane value silently never starts
+            // a new stint. See CircuitBoundary.Reset()'s doc comment.
+            _circuitBoundary.Reset();
+
+            // Discard stub sessions rather than writing them out - see
+            // PluginSettings.MinSessionDurationS's doc comment. Uses
+            // _rewindIndex.Count (already kept in lockstep with rows actually
+            // written, same as EvaluateDiscontinuityAndRewind's own timeS calc)
+            // rather than wall-clock session length, so a session that spent most
+            // of its short life paused/disconnected doesn't get held to the same
+            // bar as one that was genuinely driven for that long.
+            double recordedDurationS = _rewindIndex.Count / (double)Settings.SampleRateHz;
+            if (recordedDurationS < Settings.MinSessionDurationS)
+            {
+                SimHub.Logging.Current.Info(
+                    $"TelemetryExportPlugin: discarding session, only {recordedDurationS:0.000}s recorded (below MinSessionDurationS={Settings.MinSessionDurationS}s)");
+                _session.Discard();
+                _session = null;
+                _openDiscontinuityStartTimeS = null;
+                return;
+            }
 
             if (_openDiscontinuityStartTimeS.HasValue)
             {

@@ -50,7 +50,31 @@ namespace TelemetryExportPlugin.Config
         // treats it as a real disconnect and ends the session, rather than a
         // momentary telemetry gap (e.g. GT7's UDP stream stalling for under a
         // second during an in-game pause). See DisconnectGuard.cs.
-        public int DisconnectGraceMs { get; set; } = 3000;
+        //
+        // Raised from the original 3000 after a live 2026-08-15 FH6 test (two
+        // races, ~13 minutes) showed FH6's UDP link to SimHub flapping repeatedly
+        // between races - menu/loading/results screens, not the drive itself -
+        // with reconnect gaps up to several tens of seconds. At 3000ms nearly
+        // every one of those flaps force-closed the in-progress session,
+        // fragmenting what should have been ~2 files into 14. 15000ms bridges
+        // most of that flapping while still closing out a session within a
+        // reasonable time after play actually stops. Plugin.cs pauses
+        // SampleTimer's cadence for the duration of any null-data gap (same as a
+        // real in-game pause) specifically so a longer grace window like this
+        // doesn't inject minutes of frozen stale-value rows into an otherwise
+        // clean recording.
+        public int DisconnectGraceMs { get; set; } = 15000;
+
+        // A session that closes (any reason - pit-lane exit, disconnect, plugin
+        // shutdown) having recorded less than this many seconds of actual rows is
+        // discarded rather than written out. Added alongside the DisconnectGraceMs
+        // raise above: FH6's between-races UDP flapping was still producing
+        // several-second stub sessions even after that fix (reconnect briefly,
+        // disconnect again before the next real drive resumes) - real files, just
+        // junk. Measured against "Time_s" span (row count / SampleRateHz), which
+        // already excludes paused/disconnected gaps, so this reflects actual
+        // recorded duration, not wall-clock file lifetime.
+        public double MinSessionDurationS { get; set; } = 10.0;
 
         public RecordingTriggerMode RecordingTrigger { get; set; } = RecordingTriggerMode.Automatic;
 

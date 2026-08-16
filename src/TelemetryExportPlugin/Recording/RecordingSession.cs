@@ -146,6 +146,24 @@ namespace TelemetryExportPlugin.Recording
             }
         }
 
+        /// <summary>
+        /// Closes and deletes the in-progress .tsv.partial without writing a
+        /// sidecar or moving anything into OutputDir - for a session too short to
+        /// be worth keeping (see PluginSettings.MinSessionDurationS).
+        /// </summary>
+        public void Discard()
+        {
+            if (!IsOpen) throw new InvalidOperationException("Session not open.");
+
+            _stream.Dispose();
+            _stream = null;
+
+            if (File.Exists(PartialPath))
+            {
+                File.Delete(PartialPath);
+            }
+        }
+
         public void Dispose()
         {
             _stream?.Dispose();
