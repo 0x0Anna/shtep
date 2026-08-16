@@ -69,6 +69,7 @@ namespace TelemetryExportPlugin
         private RewindIndex _rewindIndex;
         private RallyBoundary _rallyBoundary;
         private CircuitBoundary _circuitBoundary;
+        private DisconnectGuard _disconnectGuard;
         private RecordingSession _session;
         private string _pluginVersion;
 
@@ -100,6 +101,7 @@ namespace TelemetryExportPlugin
 
             _discontinuityDetector = new DiscontinuityDetector(Settings);
             _rewindIndex = new RewindIndex();
+            _disconnectGuard = new DisconnectGuard(Settings.DisconnectGraceMs);
 
             _rallyBoundary = new RallyBoundary();
             _rallyBoundary.StageStarted += (context, car, driver) =>
@@ -156,9 +158,21 @@ namespace TelemetryExportPlugin
                 // (other plugins/subsystems stay active), but data.NewData stays null
                 // the whole time, so a session left open at disconnect would otherwise
                 // never close until SimHub itself shuts down and Plugin.End() runs.
-                // Treat disconnect as an implicit end for whichever trigger mode is
-                // active - there's no more telemetry to record regardless.
-                if (_session != null && _session.IsOpen)
+                // Stop SampleTimer's cadence for the duration of the gap, same as a
+                // real in-game pause - otherwise it keeps ticking on held last-known
+                // values the whole time data.NewData is null, and with
+                // DisconnectGraceMs raised well past a single tick (see
+                // PluginSettings.cs), an unconfirmed disconnect would otherwise
+                // inject a run of frozen stale-value rows into the file instead of
+                // just a clean pause-style gap.
+                _sampleTimer.SetPaused(true);
+
+                // Debounced via DisconnectGuard rather than ending on the very first
+                // null tick - confirmed live 2026-08-07 that GT7's telemetry goes null
+                // for well under a second around an in-game pause, and the old
+                // immediate-end behavior fragmented one continuous drive into several
+                // files every time (see DisconnectGuard's doc comment).
+                if (_disconnectGuard.Feed(hasData: false, DateTime.UtcNow) && _session != null && _session.IsOpen)
                 {
                     SimHub.Logging.Current.Info("TelemetryExportPlugin: game disconnected mid-session, ending recording");
                     EndSession();
@@ -166,6 +180,7 @@ namespace TelemetryExportPlugin
                 return;
             }
 
+            _disconnectGuard.Feed(hasData: true, DateTime.UtcNow);
             _currentSim = data.GameName;
             _sampleTimer.SetPaused(data.GamePaused);
 
@@ -381,6 +396,31 @@ namespace TelemetryExportPlugin
             // next reconnects, regardless of which trigger mode originally opened it.
             _simHubRecordingActive = false;
 
+            // Same reasoning for CircuitBoundary's own internal latch - without this,
+            // a session force-closed by something other than a pit-lane transition
+            // (disconnect being the common case) leaves _inStint stuck true, and the
+            // next Feed() with an unchanged rawInPitLane value silently never starts
+            // a new stint. See CircuitBoundary.Reset()'s doc comment.
+            _circuitBoundary.Reset();
+
+            // Discard stub sessions rather than writing them out - see
+            // PluginSettings.MinSessionDurationS's doc comment. Uses
+            // _rewindIndex.Count (already kept in lockstep with rows actually
+            // written, same as EvaluateDiscontinuityAndRewind's own timeS calc)
+            // rather than wall-clock session length, so a session that spent most
+            // of its short life paused/disconnected doesn't get held to the same
+            // bar as one that was genuinely driven for that long.
+            double recordedDurationS = _rewindIndex.Count / (double)Settings.SampleRateHz;
+            if (recordedDurationS < Settings.MinSessionDurationS)
+            {
+                SimHub.Logging.Current.Info(
+                    $"TelemetryExportPlugin: discarding session, only {recordedDurationS:0.000}s recorded (below MinSessionDurationS={Settings.MinSessionDurationS}s)");
+                _session.Discard();
+                _session = null;
+                _openDiscontinuityStartTimeS = null;
+                return;
+            }
+
             if (_openDiscontinuityStartTimeS.HasValue)
             {
                 double timeS = _rewindIndex.Count / (double)Settings.SampleRateHz;
@@ -421,6 +461,11 @@ namespace TelemetryExportPlugin
                 ExportMotecLdIfEnabled(_session.BaseName, sidecar);
             }
 
+            if (Settings.ExportIbt)
+            {
+                ExportIbtIfEnabled(_session.BaseName, sidecar);
+            }
+
             _session = null;
         }
 
@@ -443,6 +488,28 @@ namespace TelemetryExportPlugin
             catch (Exception ex)
             {
                 SimHub.Logging.Current.Error($"TelemetryExportPlugin: MoTeC export failed for {baseName}: {ex}");
+            }
+        }
+
+        // Same contract as ExportMotecLdIfEnabled: runs after the .tsv/.meta.json
+        // pair has landed in OutputDir, and a failure here is logged rather than
+        // propagated so it can never take down recording.
+        private void ExportIbtIfEnabled(string baseName, RecordingSidecar sidecar)
+        {
+            try
+            {
+                string tsvPath = Path.Combine(Settings.OutputDir, $"{baseName}.tsv");
+                string ibtOutputDir = string.IsNullOrWhiteSpace(Settings.IbtOutputDir)
+                    ? Settings.OutputDir
+                    : Settings.IbtOutputDir;
+
+                string ibtPath = IbtExporter.Export(tsvPath, sidecar, ibtOutputDir, baseName,
+                    Settings.IbtTickRateHz);
+                SimHub.Logging.Current.Info($"TelemetryExportPlugin: wrote iRacing log {ibtPath}");
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Error($"TelemetryExportPlugin: .ibt export failed for {baseName}: {ex}");
             }
         }
 

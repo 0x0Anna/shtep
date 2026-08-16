@@ -24,6 +24,8 @@ namespace TelemetryExportPlugin
             RecordingTriggerCombo.SelectedItem = _plugin.Settings.RecordingTrigger;
 
             PitDebounceBox.Text = _plugin.Settings.PitLaneDebounceMs.ToString(CultureInfo.InvariantCulture);
+            DisconnectGraceBox.Text = _plugin.Settings.DisconnectGraceMs.ToString(CultureInfo.InvariantCulture);
+            MinSessionDurationBox.Text = _plugin.Settings.MinSessionDurationS.ToString(CultureInfo.InvariantCulture);
             HeuristicSpeedBox.Text = _plugin.Settings.HeuristicDiscontinuitySpeedKmh.ToString(CultureInfo.InvariantCulture);
 
             DiscontinuityModeCombo.ItemsSource = System.Enum.GetValues(typeof(DiscontinuityDetectionMode));
@@ -34,6 +36,11 @@ namespace TelemetryExportPlugin
 
             ExportMotecLdCheckBox.IsChecked = _plugin.Settings.ExportMotecLd;
             MotecOutputDirBox.Text = _plugin.Settings.MotecOutputDir;
+
+            ExportIbtCheckBox.IsChecked = _plugin.Settings.ExportIbt;
+            IbtOutputDirBox.Text = _plugin.Settings.IbtOutputDir;
+            IbtTickRateBox.Text = _plugin.Settings.IbtTickRateHz.ToString(CultureInfo.InvariantCulture);
+
             VerboseDiagnosticLoggingCheckBox.IsChecked = _plugin.Settings.VerboseDiagnosticLogging;
             _loading = false;
         }
@@ -92,6 +99,24 @@ namespace TelemetryExportPlugin
             }
         }
 
+        private void DisconnectGraceBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_loading) return;
+            if (int.TryParse(DisconnectGraceBox.Text, out var ms) && ms >= 0)
+            {
+                _plugin.Settings.DisconnectGraceMs = ms;
+            }
+        }
+
+        private void MinSessionDurationBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_loading) return;
+            if (double.TryParse(MinSessionDurationBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var s) && s >= 0)
+            {
+                _plugin.Settings.MinSessionDurationS = s;
+            }
+        }
+
         private void HeuristicSpeedBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             if (_loading) return;
@@ -129,6 +154,27 @@ namespace TelemetryExportPlugin
         {
             if (_loading) return;
             _plugin.Settings.MotecOutputDir = MotecOutputDirBox.Text;
+        }
+
+        private void ExportIbtCheckBox_Changed(object sender, System.Windows.RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _plugin.Settings.ExportIbt = ExportIbtCheckBox.IsChecked == true;
+        }
+
+        private void IbtOutputDirBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_loading) return;
+            _plugin.Settings.IbtOutputDir = IbtOutputDirBox.Text;
+        }
+
+        private void IbtTickRateBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_loading) return;
+            if (int.TryParse(IbtTickRateBox.Text, out var hz) && hz > 0)
+            {
+                _plugin.Settings.IbtTickRateHz = hz;
+            }
         }
 
         private void VerboseDiagnosticLoggingCheckBox_Changed(object sender, System.Windows.RoutedEventArgs e)

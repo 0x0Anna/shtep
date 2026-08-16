@@ -30,6 +30,12 @@
             <TextBlock Text="Pit-lane debounce (ms, circuit only)" Margin="0,12,0,2"/>
             <TextBox x:Name="PitDebounceBox" TextChanged="PitDebounceBox_TextChanged"/>
 
+            <TextBlock Text="Disconnect grace period (ms, before ending a session on lost telemetry)" Margin="0,12,0,2"/>
+            <TextBox x:Name="DisconnectGraceBox" TextChanged="DisconnectGraceBox_TextChanged"/>
+
+            <TextBlock Text="Minimum session duration (s, shorter recordings are discarded)" Margin="0,12,0,2"/>
+            <TextBox x:Name="MinSessionDurationBox" TextChanged="MinSessionDurationBox_TextChanged"/>
+
             <TextBlock Text="Heuristic discontinuity speed threshold (km/h)" Margin="0,12,0,2"/>
             <TextBox x:Name="HeuristicSpeedBox" TextChanged="HeuristicSpeedBox_TextChanged"/>
 
@@ -44,6 +50,15 @@
 
             <TextBlock Text="MoTeC (.ld) output directory (blank = same as output directory)" Margin="0,8,0,2"/>
             <TextBox x:Name="MotecOutputDirBox" TextChanged="MotecOutputDirBox_TextChanged"/>
+
+            <styles:SHToggleCheckbox x:Name="ExportIbtCheckBox" Content="Also export an iRacing (.ibt) file for Cosworth Pi Toolbox after each recording"
+                      Margin="0,16,0,0" Checked="ExportIbtCheckBox_Changed" Unchecked="ExportIbtCheckBox_Changed"/>
+
+            <TextBlock Text=".ibt output directory (blank = same as output directory)" Margin="0,8,0,2"/>
+            <TextBox x:Name="IbtOutputDirBox" TextChanged="IbtOutputDirBox_TextChanged"/>
+
+            <TextBlock Text=".ibt tick rate (Hz)" Margin="0,8,0,2"/>
+            <TextBox x:Name="IbtTickRateBox" TextChanged="IbtTickRateBox_TextChanged"/>
 
             <styles:SHToggleCheckbox x:Name="VerboseDiagnosticLoggingCheckBox" Content="Verbose diagnostic logging"
                       Margin="0,16,0,0" Checked="VerboseDiagnosticLoggingCheckBox_Changed" Unchecked="VerboseDiagnosticLoggingCheckBox_Changed"/>

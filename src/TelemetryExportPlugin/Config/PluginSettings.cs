@@ -46,6 +46,36 @@ namespace TelemetryExportPlugin.Config
 
         public int PitLaneDebounceMs { get; set; } = 1500;
 
+        // How long data.NewData must stay null before Plugin.cs's DisconnectGuard
+        // treats it as a real disconnect and ends the session, rather than a
+        // momentary telemetry gap (e.g. GT7's UDP stream stalling for under a
+        // second during an in-game pause). See DisconnectGuard.cs.
+        //
+        // Raised from the original 3000 after a live 2026-08-15 FH6 test (two
+        // races, ~13 minutes) showed FH6's UDP link to SimHub flapping repeatedly
+        // between races - menu/loading/results screens, not the drive itself -
+        // with reconnect gaps up to several tens of seconds. At 3000ms nearly
+        // every one of those flaps force-closed the in-progress session,
+        // fragmenting what should have been ~2 files into 14. 15000ms bridges
+        // most of that flapping while still closing out a session within a
+        // reasonable time after play actually stops. Plugin.cs pauses
+        // SampleTimer's cadence for the duration of any null-data gap (same as a
+        // real in-game pause) specifically so a longer grace window like this
+        // doesn't inject minutes of frozen stale-value rows into an otherwise
+        // clean recording.
+        public int DisconnectGraceMs { get; set; } = 15000;
+
+        // A session that closes (any reason - pit-lane exit, disconnect, plugin
+        // shutdown) having recorded less than this many seconds of actual rows is
+        // discarded rather than written out. Added alongside the DisconnectGraceMs
+        // raise above: FH6's between-races UDP flapping was still producing
+        // several-second stub sessions even after that fix (reconnect briefly,
+        // disconnect again before the next real drive resumes) - real files, just
+        // junk. Measured against "Time_s" span (row count / SampleRateHz), which
+        // already excludes paused/disconnected gaps, so this reflects actual
+        // recorded duration, not wall-clock file lifetime.
+        public double MinSessionDurationS { get; set; } = 10.0;
+
         public RecordingTriggerMode RecordingTrigger { get; set; } = RecordingTriggerMode.Automatic;
 
         public DiscontinuityDetectionMode DiscontinuityDetection { get; set; } = DiscontinuityDetectionMode.Both;
@@ -71,6 +101,35 @@ namespace TelemetryExportPlugin.Config
         /// TSV/JSON elsewhere.
         /// </summary>
         public string MotecOutputDir { get; set; } = "";
+
+        /// <summary>
+        /// Post-processing step: after a recording's .tsv/.meta.json pair lands in
+        /// OutputDir, also write an iRacing .ibt file from it, which Cosworth Pi
+        /// Toolbox imports natively (see Export/IbtExporter.cs and
+        /// PI_TOOLBOX_EXPORT.md). Off by default, independent of ExportMotecLd -
+        /// both can be enabled at once. Runs after Close(), not on the live write
+        /// path, so it never affects recording itself.
+        /// </summary>
+        public bool ExportIbt { get; set; } = false;
+
+        /// <summary>
+        /// Destination directory for generated .ibt files. Empty means "same as
+        /// OutputDir".
+        /// </summary>
+        public string IbtOutputDir { get; set; } = "";
+
+        /// <summary>
+        /// Sample rate of the generated .ibt. Defaults to 60 Hz - iRacing's own
+        /// rate, and the only one validated against Pi Toolbox - so a 100 Hz
+        /// recording is resampled down.
+        ///
+        /// Set this to SampleRateHz to keep full fidelity, at the cost of writing
+        /// a rate real iRacing files never use. Whatever the value, it must match
+        /// the actual sample spacing: consumers reconstruct time as
+        /// index * (1/tick_rate), so a mismatch stretches the session while every
+        /// individual value still round-trips correctly.
+        /// </summary>
+        public int IbtTickRateHz { get; set; } = 60;
 
         /// <summary>
         /// Throttled raw-channel dump to SimHub's log (not the recorded TSV) for
