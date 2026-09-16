@@ -362,14 +362,12 @@ namespace TelemetryExportPlugin.Export
                     { "LapDistPct", lapDistPct },
                     { "Lap", lapNumber },
                     { "LapCompleted", lapCompleted },
-                    // shtep's LatAccel_g/LongAccel_g/VertAccel_g are misnamed: the
-                    // values are m/s^2, not g (a ±23 reading is impossible as g and
-                    // correct as m/s^2). iRacing's channels are m/s^2 too, so these
-                    // pass straight through. If the suffix is ever corrected, do NOT
-                    // add a x9.81 conversion here - only the label was ever wrong.
-                    { "LatAccel", lerp(t.Column("LatAccel_g"), 1.0) },
-                    { "LongAccel", lerp(t.Column("LongAccel_g"), 1.0) },
-                    { "VertAccel", lerp(t.Column("VertAccel_g"), 1.0) },
+                    // shtep's *_mps2 columns are already m/s^2 (renamed from a
+                    // misleading _g suffix). iRacing's channels are m/s^2 too, so
+                    // these pass straight through - do NOT add a x9.81 conversion.
+                    { "LatAccel", lerp(t.Column("LatAccel_mps2"), 1.0) },
+                    { "LongAccel", lerp(t.Column("LongAccel_mps2"), 1.0) },
+                    { "VertAccel", lerp(t.Column("VertAccel_mps2"), 1.0) },
                     { "BrakeABSactive", hold(t.Column("ABSActive")) },
                     { "IsOnTrack", Constant(1.0, outCount) },
                 };

@@ -297,11 +297,11 @@ namespace TelemetryExportPlugin.Tests
         [Fact]
         public void Export_PassesAccelerationChannelsThroughUnscaled()
         {
-            // shtep's *_g columns are misnamed: the values are m/s^2, which is what
-            // iRacing uses too. A x9.81 conversion here would be wrong.
+            // shtep's *_mps2 columns are already m/s^2, which is what iRacing uses
+            // too. A x9.81 conversion here would be wrong.
             string baseName = "gt7_accel";
             string tsv = WriteTsv(baseName,
-                "Time_s\tSpeed_kmh\tLatAccel_g\tLongAccel_g\tVertAccel_g\n" +
+                "Time_s\tSpeed_kmh\tLatAccel_mps2\tLongAccel_mps2\tVertAccel_mps2\n" +
                 "0.000\t36\t12.5\t-8.25\t9.81\n" +
                 "0.100\t36\t12.5\t-8.25\t9.81\n" +
                 "0.200\t36\t12.5\t-8.25\t9.81\n");

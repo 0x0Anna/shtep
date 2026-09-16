@@ -172,7 +172,7 @@ namespace TelemetryExportPlugin.Recording
         // fx/fy/mz are the raw struct's own field names; which physical axis (car
         // longitudinal vs lateral, tyre-frame vs car-frame) each maps to is NOT
         // confirmed here, so don't assume fx = longitudinal without a live test that
-        // correlates it against a known maneuver (e.g. fy should track LatAccel_g
+        // correlates it against a known maneuver (e.g. fy should track LatAccel_mps2
         // under sustained cornering if it really is lateral force).
         public static double? TyreForceFxRaw(StatusDataBase d, string gameName, int corner) =>
             TryGetPhysics(d, gameName, out var p) && p.fx != null && corner < p.fx.Length

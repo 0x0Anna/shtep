@@ -220,7 +220,7 @@ the PDS-writing SDK, if `.pds` is ever reconsidered.
 > channels**, so much of the "not yet mapped" list below is now recorded. What a given
 > *sim* actually populates is the real constraint. For GT7 specifically, measured live:
 > **live** — `LapNumber`, `Speed_kmh`, `RPM`, `Gear`, pedals, `FuelLevel_pct`,
-> `LatAccel_g`/`LongAccel_g`/`VertAccel_g`, `TyreTempFL_C` (62–78 °C), `ABSActive`,
+> `LatAccel_mps2`/`LongAccel_mps2`/`VertAccel_mps2` (renamed 2026-09-15, was `*_g`), `TyreTempFL_C` (62–78 °C), `ABSActive`,
 > `TCActive`, `CarPosX/Y/Z`; **dead/empty** — `SteerRatio`, `SuspTravel*`, `WheelLoad*`,
 > `TyrePressure*`, `BrakeTemp*`, `AirTemp_C`, `TrackTemp_C`, `PitLimiterOn`,
 > `Handbrake_pct`, `LapDistancePct` (flat −1).
@@ -284,16 +284,20 @@ Generated file: 27 channels, 112-byte stride, 3.46 MB for a 514 s / 7-lap sessio
 - `Lap` ← `LapNumber`; `LapCompleted` ← `LapNumber - 1`; `session_lap_count` ← max lap;
   `DriverCarEstLapTime` ← median full-lap time.
 
-### The accelerometer unit bug — read this before "fixing" it
+### The accelerometer unit bug — fixed 2026-09-15
 
-`LatAccel_g` spans −21 to +23 in this session. As g that is physically impossible; as
-**m/s²** it is ±2.3 g, exactly right for a race car. The values are **m/s² carrying a
-misleading `_g` suffix** — the known unfixed naming bug.
+`LatAccel_g` (as it was named at the time) spanned −21 to +23 in this session. As g that
+is physically impossible; as **m/s²** it is ±2.3 g, exactly right for a race car. The
+values were **m/s² carrying a misleading `_g` suffix** — fixed by renaming the columns
+to `LatAccel_mps2`/`LongAccel_mps2`/`VertAccel_mps2` (`ChannelMap.cs`,
+`PluginSettings.cs`'s default `EnabledChannels`, `IbtExporter.cs`). No numeric
+conversion was applied - only the label was ever wrong.
 
 This is convenient: iRacing's `LatAccel`/`LongAccel`/`VertAccel` are also m/s², so they
-map **straight through with no conversion**. If the naming bug is ever corrected in the
-plugin, **do not add a ×9.81 conversion** — the numbers are already right, only the
-label is wrong.
+still map **straight through with no conversion** in `IbtExporter.cs`.
+
+**Any `.tsv` recorded before this fix still has the old `LatAccel_g` etc. column
+headers** - not something to patch after the fact, re-record if you need the new names.
 
 ### Rewind-fix timing (checked, no impact)
 
