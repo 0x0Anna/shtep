@@ -72,9 +72,11 @@ namespace TelemetryExportPlugin.Recording
                 ("LapDistance_m", (d, sim) => TryGet(() => (double?)d.TrackPositionMeters)),
                 ("FuelLevel_pct", (d, sim) => TryGet(() => (double?)d.FuelPercent)),
                 ("LapNumber", (d, sim) => TryGet(() => (double?)d.CurrentLap)),
-                ("LatAccel_g", (d, sim) => TryGet(() => d.AccelerationSway)),
-                ("LongAccel_g", (d, sim) => TryGet(() => d.AccelerationSurge)),
-                ("VertAccel_g", (d, sim) => TryGet(() => d.AccelerationHeave)),
+                // Named _mps2, not _g: GameReaderCommon's Acceleration* fields are
+                // m/s^2 despite older shtep code/docs assuming g (see SCHEMA.md).
+                ("LatAccel_mps2", (d, sim) => TryGet(() => d.AccelerationSway)),
+                ("LongAccel_mps2", (d, sim) => TryGet(() => d.AccelerationSurge)),
+                ("VertAccel_mps2", (d, sim) => TryGet(() => d.AccelerationHeave)),
                 ("ABSActive", (d, sim) => TryGet(() => (double?)d.ABSActive)),
                 // Mirror of ABSActive - same generic Int32 flag shape, confirmed present
                 // by reflecting GameReaderCommon.dll, unwired until now.
