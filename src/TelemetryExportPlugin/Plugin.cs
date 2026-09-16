@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using GameReaderCommon;
 using SimHub.Plugins;
 using System.IO;
@@ -60,7 +62,9 @@ namespace TelemetryExportPlugin
 
         public PluginManager PluginManager { get; set; }
 
-        public ImageSource PictureIcon => null;
+        private static readonly Lazy<ImageSource> ToolbarIcon = new Lazy<ImageSource>(LoadToolbarIcon);
+
+        public ImageSource PictureIcon => ToolbarIcon.Value;
 
         public string LeftMenuTitle => "Telemetry Export";
 
@@ -81,6 +85,25 @@ namespace TelemetryExportPlugin
         private List<DiscontinuityEntry> _discontinuities;
         private List<RewindEntry> _rewinds;
         private bool _simHubRecordingActive;
+
+        // Plain WPF resource loading rather than SimHub's own icon-conversion helper,
+        // so the toolbar icon doesn't depend on which SDK version this is built
+        // against. Frozen because PictureIcon is read from SimHub's UI thread and a
+        // shared, cached ImageSource must be immutable to be safely reused.
+        private static ImageSource LoadToolbarIcon()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using (var stream = assembly.GetManifestResourceStream("TelemetryExportPlugin.Resources.icon.png"))
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.StreamSource = stream;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
+            }
+        }
 
         public void Init(PluginManager pluginManager)
         {

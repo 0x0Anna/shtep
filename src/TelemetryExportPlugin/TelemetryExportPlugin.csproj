@@ -82,6 +82,12 @@
     </Page>
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\icon.png">
+      <LogicalName>TelemetryExportPlugin.Resources.icon.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
   <!-- Opt-in: `dotnet build -t:Deploy` copies the built plugin into the live SimHub
        install so SimHub picks it up on next launch. Not run as part of a normal Build
        (SimHub locks the DLL while running, so this only succeeds when SimHub is
