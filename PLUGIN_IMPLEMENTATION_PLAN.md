@@ -158,3 +158,27 @@ validation" section — attempt create, warn clearly if it fails.
   crosses a lap boundary) beyond what `RewindIndex`'s position/LapDistance
   fallback already gives you — revisit only if the fallback proves unreliable
   in practice.
+
+## SDK/upstream watch list
+
+Flagged from SimHub's own release notes, not yet confirmed against a live
+install — treat as "worth re-testing," not "known to work," per this repo's
+usual bar for touching `RallySimIds`/`RewindCapableSimIds`/`ChannelMap`.
+
+- **GT7 telemetry format update (SimHub 9.11.12).** SimHub's changelog says
+  this added "native sway, surge, heave, lap time, kerbs detection" for
+  Gran Turismo 7. `Plugin.cs`'s `GetLapNumber` and the "GT7 has no rewind
+  feature" note (confirmed 2026-08-04, before this SimHub update shipped)
+  both predate it — worth re-confirming `LapNumber` still resolves the same
+  way, and evaluating whether a kerb channel is worth adding to `ChannelMap`.
+- **Assetto Corsa EVO telemetry (SimHub 9.11.11, "AC EVO 0.6").** Not
+  currently in `RallySimIds` or `RewindCapableSimIds`, so it already falls
+  through to the default circuit-boundary, non-rewind-capable path — that's
+  probably fine, but hasn't been live-tested against AC EVO's actual
+  `GameName`/`StatusDataBase` shape the way AC and ACC have been.
+- **SimHub 9.12.7 added a JSON export of all available properties and
+  actions.** Once available against an installed copy, this could replace
+  some of the reflection-based property probing this repo currently relies
+  on (e.g. `RawPhysicsAccessor`'s cast to `ACSharedMemory.ACR.Reader.ACRRawData`)
+  with a documented list of what each sim actually exposes — useful for
+  confirming dead/duplicate channels faster than live-testing each one.
